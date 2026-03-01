@@ -11,7 +11,7 @@ from runner import Runner
 def main() -> None:
     runner = Runner(
         hours=24,
-        fetch_content=False,       # set True to download full article text via Docling
+        fetch_content=True,       # set True to download full article text via Docling
         fetch_transcripts=True,    # set True to download YouTube transcripts
     )
     report = runner.run()

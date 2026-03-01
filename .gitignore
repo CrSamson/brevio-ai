@@ -14,9 +14,10 @@ dist/
 build/
 *.egg-info/
 
-# Environment variables
+# Environment variables — keep the example template in source control
 .env
 .env.*
+!.env.example
 
 # IDE
 .vscode/

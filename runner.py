@@ -12,6 +12,8 @@ from pathlib import Path
 from datetime import datetime, timezone
 
 from scrapers import AnthropicScraper, YouTubeScraper
+from app.database.db import get_db
+from app.database.crud import upsert_anthropic_articles, upsert_youtube_videos
 
 
 # ---------------------------------------------------------------------------
@@ -77,6 +79,7 @@ class Runner:
             "youtube":      youtube_data,
         }
 
+        self._save_to_db(report)
         self._print_summary(report)
         return report
 
@@ -128,6 +131,31 @@ class Runner:
         all_videos.sort(key=lambda v: v["published_at"], reverse=True)
         print(f"      Total: {len(all_videos)} video(s).\n")
         return {"count": len(all_videos), "videos": all_videos}
+
+    # ------------------------------------------------------------------
+    # Database persistence
+    # ------------------------------------------------------------------
+
+    @staticmethod
+    def _save_to_db(report: dict) -> None:
+        """Upsert all scraped data into PostgreSQL."""
+        articles = report["anthropic"]["articles"]
+        videos   = report["youtube"]["videos"]
+
+        with get_db() as db:
+            if articles:
+                saved_articles = upsert_anthropic_articles(db, articles)
+                print(f"[DB] Upserted {len(saved_articles)} Anthropic article(s).")
+            else:
+                print("[DB] No Anthropic articles to save.")
+
+            if videos:
+                saved_videos = upsert_youtube_videos(db, videos)
+                print(f"[DB] Upserted {len(saved_videos)} YouTube video(s).")
+            else:
+                print("[DB] No YouTube videos to save.")
+
+        print()
 
     # ------------------------------------------------------------------
     # Pretty-print
