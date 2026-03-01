@@ -10,7 +10,7 @@ from runner import Runner
 
 def main() -> None:
     runner = Runner(
-        hours=24,
+        hours=100,                  # look back this many hours (default: 24)
         fetch_content=True,       # set True to download full article text via Docling
         fetch_transcripts=True,    # set True to download YouTube transcripts
     )

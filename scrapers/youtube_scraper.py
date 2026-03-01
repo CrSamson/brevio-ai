@@ -105,6 +105,7 @@ class YouTubeScraper:
                           hours: int = 24) -> list[dict]:
         """
         Return validated video metadata for videos published within `hours` hours.
+        YouTube Shorts are automatically filtered out.
 
         Returns:
             List of dicts with keys: title, video_id, url, published_at, description
@@ -119,6 +120,11 @@ class YouTubeScraper:
                 continue
 
             video_id = entry.get("yt_videoid", "")
+
+            # Skip YouTube Shorts
+            if self._is_short(video_id):
+                print(f"        [SKIP] Short detected: {entry.get('title', video_id)}")
+                continue
 
             metadata = VideoMetadata(
                 title        = entry.get("title", ""),
@@ -175,6 +181,26 @@ class YouTubeScraper:
     # ------------------------------------------------------------------
     # Private helpers
     # ------------------------------------------------------------------
+
+    def _is_short(self, video_id: str) -> bool:
+        """
+        Detect whether a video is a YouTube Short.
+
+        Makes a HEAD request to youtube.com/shorts/{video_id}.
+        If YouTube returns 200 (no redirect away), it's a Short.
+        If it redirects to /watch?v=…, it's a regular video.
+        """
+        try:
+            r = requests.head(
+                f"{YT_BASE_URL}/shorts/{video_id}",
+                headers=REQUEST_HEADERS,
+                timeout=self.timeout,
+                allow_redirects=True,
+            )
+            # After redirects, if the final URL still contains /shorts/, it's a Short
+            return "/shorts/" in r.url
+        except requests.exceptions.RequestException:
+            return False  # on error, assume it's not a Short
 
     @staticmethod
     def _build_channel_url(name: str) -> str:
