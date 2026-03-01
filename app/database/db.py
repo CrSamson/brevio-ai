@@ -10,6 +10,7 @@ Reads DATABASE_URL from the .env file (or the environment) and creates:
 import os
 from contextlib import contextmanager
 from pathlib import Path
+from typing import Generator
 
 from dotenv import load_dotenv
 from sqlalchemy import create_engine
@@ -32,7 +33,7 @@ SessionLocal = sessionmaker(bind=engine, autocommit=False, autoflush=False)
 
 
 @contextmanager
-def get_db() -> Session:
+def get_db() -> Generator[Session, None, None]:
     """
     Yield a SQLAlchemy session, committing on success and rolling back on error.
 
