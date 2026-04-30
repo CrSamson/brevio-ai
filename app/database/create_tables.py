@@ -14,10 +14,18 @@ from pathlib import Path
 # Allow running from the project root without installing the package
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
-from sqlalchemy import inspect
+from sqlalchemy import inspect, text
 
 from app.database.db import engine
 from app.database.models import Base, AnthropicArticle, YoutubeVideo  # noqa: F401
+
+
+# (table, column, ddl-fragment) — kept here so re-running this script is enough
+# to bring an existing DB in line with the current models.
+_ADDITIVE_COLUMNS: list[tuple[str, str, str]] = [
+    ("anthropic_articles", "summary", "TEXT NOT NULL DEFAULT ''"),
+    ("youtube_videos",     "summary", "TEXT NOT NULL DEFAULT ''"),
+]
 
 
 def main() -> None:
@@ -38,6 +46,16 @@ def main() -> None:
         print(f"  [CREATED]    {table}")
     for table in sorted(preexisting):
         print(f"  [EXISTS]     {table}")
+
+    # ADD COLUMN IF NOT EXISTS keeps existing rows + lets this script stay idempotent
+    with engine.begin() as conn:
+        for table, column, ddl in _ADDITIVE_COLUMNS:
+            if table not in after:
+                continue
+            conn.execute(text(
+                f'ALTER TABLE {table} ADD COLUMN IF NOT EXISTS {column} {ddl}'
+            ))
+            print(f"  [COLUMN OK]  {table}.{column}")
 
     print(f"\nDone. {len(created)} table(s) created, {len(preexisting)} already existed.")
 

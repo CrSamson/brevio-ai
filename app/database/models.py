@@ -45,6 +45,7 @@ class AnthropicArticle(Base):
     published_at = Column(DateTime(timezone=True), nullable=False)
     category     = Column(String(256),  nullable=True)
     content      = Column(Text,         nullable=False, default="")    # full article markdown
+    summary      = Column(Text,         nullable=False, default="")    # LLM-generated per-row summary
 
     # --- housekeeping ---
     created_at   = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
@@ -74,6 +75,7 @@ class YoutubeVideo(Base):
     # --- fields added by runner.py ---
     channel_handle = Column(String(256),  nullable=False, default="")   # e.g. "@Fireship"
     transcript     = Column(Text,         nullable=False, default="")
+    summary        = Column(Text,         nullable=False, default="")   # LLM-generated per-row summary
 
     # --- housekeeping ---
     created_at     = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)

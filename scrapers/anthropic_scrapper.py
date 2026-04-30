@@ -1,9 +1,50 @@
+import re
 import feedparser
 from datetime import datetime, timedelta, timezone
 from typing import List, Optional
 
 from docling.document_converter import DocumentConverter
 from pydantic import AnyHttpUrl, BaseModel
+
+
+# The Olshansk RSS feed for anthropic.com prepends each title with the
+# article's date and category, no separator — e.g.
+#   "Apr 29, 2026ScienceEvaluating Claude's Bioinformatics ..."
+# The two helpers below strip both so the stored `title` is just the headline.
+
+_DATE_PREFIX_RE = re.compile(
+    r"^(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*"
+    r"\s+\d{1,2},\s*\d{4}"
+)
+
+# Multi-word entries listed first so they match before their single-word prefix.
+_KNOWN_CATEGORIES: tuple[str, ...] = (
+    "Customer Stories",
+    "Customer story",
+    "Announcements",
+    "Engineering",
+    "Education",
+    "Interpretability",
+    "Product",
+    "Policy",
+    "Research",
+    "Science",
+    "Society",
+    "News",
+)
+
+
+def clean_anthropic_title(raw: str) -> str:
+    """Strip the leading date and category the upstream feed prepends to titles."""
+    s = (raw or "").strip()
+    m = _DATE_PREFIX_RE.match(s)
+    if m:
+        s = s[m.end():].lstrip()
+    for cat in _KNOWN_CATEGORIES:
+        if s.startswith(cat):
+            s = s[len(cat):].lstrip()
+            break
+    return s
 
 
 _HEADERS = {
@@ -64,7 +105,7 @@ class AnthropicScraper:
                 content = self.get_article_content(url) if with_content else ""
 
                 results.append(AnthropicArticle(
-                    title       = entry.get("title", ""),
+                    title       = clean_anthropic_title(entry.get("title", "")),
                     description = entry.get("description", ""),
                     url         = url,
                     guid        = entry.get("id", url),

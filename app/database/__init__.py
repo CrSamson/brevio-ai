@@ -9,9 +9,15 @@ from .crud import (
     upsert_anthropic_article,
     upsert_anthropic_articles,
     get_all_anthropic_articles,
+    get_unsummarized_anthropic_articles,
+    set_anthropic_summary,
+    get_recent_summarized_anthropic_articles,
     upsert_youtube_video,
     upsert_youtube_videos,
     get_all_youtube_videos,
+    get_unsummarized_youtube_videos,
+    set_youtube_summary,
+    get_recent_summarized_youtube_videos,
 )
 
 __all__ = [
@@ -24,7 +30,13 @@ __all__ = [
     "upsert_anthropic_article",
     "upsert_anthropic_articles",
     "get_all_anthropic_articles",
+    "get_unsummarized_anthropic_articles",
+    "set_anthropic_summary",
+    "get_recent_summarized_anthropic_articles",
     "upsert_youtube_video",
     "upsert_youtube_videos",
     "get_all_youtube_videos",
+    "get_unsummarized_youtube_videos",
+    "set_youtube_summary",
+    "get_recent_summarized_youtube_videos",
 ]

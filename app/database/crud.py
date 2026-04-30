@@ -5,7 +5,7 @@ Uses PostgreSQL ON CONFLICT … DO UPDATE (upsert) so scrapers can safely
 re-insert the same article or video without duplicates.
 """
 
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from typing import Optional
 
 from sqlalchemy import select
@@ -70,6 +70,50 @@ def get_all_anthropic_articles(db: Session) -> list[AnthropicArticle]:
     return list(db.execute(stmt).scalars().all())
 
 
+def get_unsummarized_anthropic_articles(db: Session, limit: Optional[int] = None) -> list[AnthropicArticle]:
+    """Return Anthropic articles whose `summary` is empty, newest first."""
+    stmt = (
+        select(AnthropicArticle)
+        .where(AnthropicArticle.summary == "")
+        .order_by(AnthropicArticle.published_at.desc())
+    )
+    if limit is not None:
+        stmt = stmt.limit(limit)
+    return list(db.execute(stmt).scalars().all())
+
+
+def set_anthropic_summary(db: Session, article_id: int, summary: str) -> None:
+    """Persist a generated summary for one Anthropic article."""
+    article = db.get(AnthropicArticle, article_id)
+    if article is None:
+        raise ValueError(f"AnthropicArticle id={article_id} not found")
+    article.summary = summary
+
+
+def _digest_cutoff(hours: int) -> datetime:
+    """
+    Cutoff used by the digest queries.
+
+    Rounded down to midnight UTC so a "today" article is never excluded by
+    a few wall-clock hours. Mirrors AnthropicScraper.fetch_articles().
+    """
+    return (
+        datetime.now(timezone.utc) - timedelta(hours=hours)
+    ).replace(hour=0, minute=0, second=0, microsecond=0)
+
+
+def get_recent_summarized_anthropic_articles(db: Session, hours: int) -> list[AnthropicArticle]:
+    """Return Anthropic articles published in the last `hours` hours that have a summary."""
+    cutoff = _digest_cutoff(hours)
+    stmt = (
+        select(AnthropicArticle)
+        .where(AnthropicArticle.summary != "")
+        .where(AnthropicArticle.published_at >= cutoff)
+        .order_by(AnthropicArticle.published_at.desc())
+    )
+    return list(db.execute(stmt).scalars().all())
+
+
 # ===================================================================
 # YouTube Videos
 # ===================================================================
@@ -122,4 +166,36 @@ def upsert_youtube_videos(db: Session, videos: list[dict]) -> list[YoutubeVideo]
 def get_all_youtube_videos(db: Session) -> list[YoutubeVideo]:
     """Return all YouTube videos, newest first."""
     stmt = select(YoutubeVideo).order_by(YoutubeVideo.published_at.desc())
+    return list(db.execute(stmt).scalars().all())
+
+
+def get_unsummarized_youtube_videos(db: Session, limit: Optional[int] = None) -> list[YoutubeVideo]:
+    """Return YouTube videos whose `summary` is empty, newest first."""
+    stmt = (
+        select(YoutubeVideo)
+        .where(YoutubeVideo.summary == "")
+        .order_by(YoutubeVideo.published_at.desc())
+    )
+    if limit is not None:
+        stmt = stmt.limit(limit)
+    return list(db.execute(stmt).scalars().all())
+
+
+def set_youtube_summary(db: Session, video_id: int, summary: str) -> None:
+    """Persist a generated summary for one YouTube video."""
+    video = db.get(YoutubeVideo, video_id)
+    if video is None:
+        raise ValueError(f"YoutubeVideo id={video_id} not found")
+    video.summary = summary
+
+
+def get_recent_summarized_youtube_videos(db: Session, hours: int) -> list[YoutubeVideo]:
+    """Return YouTube videos published in the last `hours` hours that have a summary."""
+    cutoff = _digest_cutoff(hours)
+    stmt = (
+        select(YoutubeVideo)
+        .where(YoutubeVideo.summary != "")
+        .where(YoutubeVideo.published_at >= cutoff)
+        .order_by(YoutubeVideo.published_at.desc())
+    )
     return list(db.execute(stmt).scalars().all())
