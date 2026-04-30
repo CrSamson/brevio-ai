@@ -1,0 +1,551 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<feed xmlns:opensearch="http://a9.com/-/spec/opensearch/1.1/" xmlns:arxiv="http://arxiv.org/schemas/atom" xmlns="http://www.w3.org/2005/Atom">
+  <id>https://arxiv.org/api/sxA6q5+Z1zhMmNg8LmcFSatSulU</id>
+  <title>arXiv Query: search_query=cat:cs.LG OR cat:cs.AI&amp;id_list=&amp;start=0&amp;max_results=20</title>
+  <updated>2026-04-30T17:33:16Z</updated>
+  <link href="https://arxiv.org/api/query?search_query=cat:cs.LG+OR+cat:cs.AI&amp;start=0&amp;max_results=20&amp;id_list=" type="application/atom+xml"/>
+  <opensearch:itemsPerPage>20</opensearch:itemsPerPage>
+  <opensearch:totalResults>364218</opensearch:totalResults>
+  <opensearch:startIndex>0</opensearch:startIndex>
+  <entry>
+    <id>http://arxiv.org/abs/2604.26951v1</id>
+    <title>Turning the TIDE: Cross-Architecture Distillation for Diffusion Large Language Models</title>
+    <updated>2026-04-29T17:59:01Z</updated>
+    <link href="https://arxiv.org/abs/2604.26951v1" rel="alternate" type="text/html"/>
+    <link href="https://arxiv.org/pdf/2604.26951v1" rel="related" type="application/pdf" title="pdf"/>
+    <summary>Diffusion large language models (dLLMs) offer parallel decoding and bidirectional context, but state-of-the-art dLLMs require billions of parameters for competitive performance. While existing distillation methods for dLLMs reduce inference steps within a single architecture, none address cross-architecture knowledge transfer, in which the teacher and student differ in architecture, attention mechanism, and tokenizer. We present TIDE, the first framework for cross-architecture dLLM distillation, comprising three modular components: (1) TIDAL, which jointly modulates distillation strength across training progress and diffusion timestep to account for the teacher's noise-dependent reliability; (2) CompDemo, which enriches the teacher's context via complementary mask splitting to improve predictions under heavy masking; and (3) Reverse CALM, a cross-tokenizer objective that inverts chunk-level likelihood matching, yielding bounded gradients and dual-end noise filtering. Distilling 8B dense and 16B MoE teachers into a 0.6B student via two heterogeneous pipelines outperforms the baseline by an average of 1.53 points across eight benchmarks, yielding notable gains in code generation, where HumanEval scores reach 48.78 compared to 32.3 for the AR baseline.</summary>
+    <category term="cs.CL" scheme="http://arxiv.org/schemas/atom"/>
+    <category term="cs.AI" scheme="http://arxiv.org/schemas/atom"/>
+    <category term="cs.LG" scheme="http://arxiv.org/schemas/atom"/>
+    <published>2026-04-29T17:59:01Z</published>
+    <arxiv:comment>15 pages, 3 figures. Code: https://github.com/PKU-YuanGroup/TIDE</arxiv:comment>
+    <arxiv:primary_category term="cs.CL"/>
+    <author>
+      <name>Gongbo Zhang</name>
+    </author>
+    <author>
+      <name>Wen Wang</name>
+    </author>
+    <author>
+      <name>Ye Tian</name>
+    </author>
+    <author>
+      <name>Li Yuan</name>
+    </author>
+  </entry>
+  <entry>
+    <id>http://arxiv.org/abs/2604.26942v1</id>
+    <title>Hyper Input Convex Neural Networks for Shape Constrained Learning and Optimal Transport</title>
+    <updated>2026-04-29T17:52:05Z</updated>
+    <link href="https://arxiv.org/abs/2604.26942v1" rel="alternate" type="text/html"/>
+    <link href="https://arxiv.org/pdf/2604.26942v1" rel="related" type="application/pdf" title="pdf"/>
+    <summary>We introduce Hyper Input Convex Neural Networks (HyCNNs), a novel neural network architecture designed for learning convex functions. HyCNNs combine the principles of Maxout networks with input convex neural networks (ICNNs) to create a neural network that is always convex in the input, theoretically capable of leveraging depth, and performs reliable when trained at scale compared to ICNNs. Concretely, we prove that HyCNNs require exponentially fewer parameters than ICNNs to approximate quadratic functions up to a given precision. Throughout a series of synthetic experiments, we demonstrate that HyCNNs outperform existing ICNNs and MLPs in terms of predictive performance for convex regression and interpolation tasks. We further apply HyCNNs to learn high-dimensional optimal transport maps for synthetic examples and for single-cell RNA sequencing data, where they oftentimes outperform ICNN-based neural optimal transport methods and other baselines across a wide range of settings.</summary>
+    <category term="cs.LG" scheme="http://arxiv.org/schemas/atom"/>
+    <category term="math.ST" scheme="http://arxiv.org/schemas/atom"/>
+    <category term="q-bio.GN" scheme="http://arxiv.org/schemas/atom"/>
+    <category term="stat.ME" scheme="http://arxiv.org/schemas/atom"/>
+    <category term="stat.ML" scheme="http://arxiv.org/schemas/atom"/>
+    <published>2026-04-29T17:52:05Z</published>
+    <arxiv:comment>65 pages, 13 figures, the first two authors contributed equally</arxiv:comment>
+    <arxiv:primary_category term="cs.LG"/>
+    <author>
+      <name>Shayan Hundrieser</name>
+    </author>
+    <author>
+      <name>Insung Kong</name>
+    </author>
+    <author>
+      <name>Johannes Schmidt-Hieber</name>
+    </author>
+  </entry>
+  <entry>
+    <id>http://arxiv.org/abs/2604.26932v1</id>
+    <title>Learning Over-Relaxation Policies for ADMM with Convergence Guarantees</title>
+    <updated>2026-04-29T17:45:52Z</updated>
+    <link href="https://arxiv.org/abs/2604.26932v1" rel="alternate" type="text/html"/>
+    <link href="https://arxiv.org/pdf/2604.26932v1" rel="related" type="application/pdf" title="pdf"/>
+    <summary>The Alternating Direction Method of Multipliers (ADMM) is a widely used method for structured convex optimization, and its practical performance depends strongly on the choice of penalty and relaxation parameters. Motivated by settings such as Model Predictive Control (MPC), where one repeatedly solves related optimization problems with fixed structure and changing parameter values, we propose learning online updates of the relaxation parameter to improve performance on problem classes of interest. This choice is computationally attractive in OSQP-like architectures, since adapting relaxation does not trigger the matrix refactorizations associated with penalty updates. We establish convergence guarantees for ADMM with time-varying penalty and relaxation parameters under mild assumptions, and show on benchmark quadratic programs that the resulting learned policies improve both iteration count and wall-clock time over baseline OSQP.</summary>
+    <category term="math.OC" scheme="http://arxiv.org/schemas/atom"/>
+    <category term="cs.LG" scheme="http://arxiv.org/schemas/atom"/>
+    <published>2026-04-29T17:45:52Z</published>
+    <arxiv:primary_category term="math.OC"/>
+    <author>
+      <name>Junan Lin</name>
+    </author>
+    <author>
+      <name>Paul J. Goulart</name>
+    </author>
+    <author>
+      <name>Luca Furieri</name>
+    </author>
+  </entry>
+  <entry>
+    <id>http://arxiv.org/abs/2604.26926v1</id>
+    <title>A Note on How to Remove the $\ln\ln T$ Term from the Squint Bound</title>
+    <updated>2026-04-29T17:40:25Z</updated>
+    <link href="https://arxiv.org/abs/2604.26926v1" rel="alternate" type="text/html"/>
+    <link href="https://arxiv.org/pdf/2604.26926v1" rel="related" type="application/pdf" title="pdf"/>
+    <summary>In Orabona and Pál [2016], we introduced the shifted KT potentials, to remove the $\ln \ln T$ factor in the parameter-free learning with expert bound. In this short technical note, I show that this is equivalent to changing the prior in the Krichevsky--Trofimov algorithm. Then, I show how to use the same idea to remove the $\ln \ln T$ factor in the data-independent bound for the Squint algorithm.</summary>
+    <category term="cs.LG" scheme="http://arxiv.org/schemas/atom"/>
+    <category term="math.OC" scheme="http://arxiv.org/schemas/atom"/>
+    <category term="stat.ML" scheme="http://arxiv.org/schemas/atom"/>
+    <published>2026-04-29T17:40:25Z</published>
+    <arxiv:primary_category term="cs.LG"/>
+    <author>
+      <name>Francesco Orabona</name>
+    </author>
+  </entry>
+  <entry>
+    <id>http://arxiv.org/abs/2604.26922v1</id>
+    <title>On the Learning Curves of Revenue Maximization</title>
+    <updated>2026-04-29T17:38:25Z</updated>
+    <link href="https://arxiv.org/abs/2604.26922v1" rel="alternate" type="text/html"/>
+    <link href="https://arxiv.org/pdf/2604.26922v1" rel="related" type="application/pdf" title="pdf"/>
+    <summary>Learning curves are a fundamental primitive in supervised learning, describing how an algorithm's performance improves with more data and providing a quantitative measure of its generalization ability. Formally, a learning curve plots the decay of an algorithm's error for a fixed underlying distribution as a function of the number of training samples. Prior work on revenue-maximizing learning algorithms, starting with the seminal work of Cole and Roughgarden [STOC, 2014], adopts a distribution-free perspective, which parallels the PAC learning framework in learning theory. This approach evaluates performance against the hardest possible sequence of valuation distributions, one for each sample size, effectively defining the upper envelope of learning curves over all possible distributions, thus leading to error bounds that do not capture the shape of the learning curves.
+  In this work we initiate the study of learning curves for revenue maximization and provide a near-complete characterization of their rate of decay in the basic setting of a single item and a single buyer. In the absence of any restriction on the valuation distribution, we show that there exists a Bayes-consistent algorithm, meaning that its learning curve converges to zero for any arbitrary valuation distribution as the number of samples $n \to \infty$. However, this convergence must be arbitrarily slow, even if the optimal revenue is finite. In contrast, if the optimal revenue is achieved by a finite price, then the optimal rate of decay is roughly $1/\sqrt{n}$. Finally, for distributions supported on discrete sets of values, we show that learning curves decay almost exponentially fast, a rate unattainable under the PAC framework.</summary>
+    <category term="cs.LG" scheme="http://arxiv.org/schemas/atom"/>
+    <category term="cs.DS" scheme="http://arxiv.org/schemas/atom"/>
+    <category term="cs.GT" scheme="http://arxiv.org/schemas/atom"/>
+    <category term="stat.ML" scheme="http://arxiv.org/schemas/atom"/>
+    <published>2026-04-29T17:38:25Z</published>
+    <arxiv:comment>To appear in the 58th ACM Symposium on Theory of Computing (STOC 2026)</arxiv:comment>
+    <arxiv:primary_category term="cs.LG"/>
+    <author>
+      <name>Steve Hanneke</name>
+    </author>
+    <author>
+      <name>Alkis Kalavasis</name>
+    </author>
+    <author>
+      <name>Shay Moran</name>
+    </author>
+    <author>
+      <name>Grigoris Velegkas</name>
+    </author>
+  </entry>
+  <entry>
+    <id>http://arxiv.org/abs/2604.26919v1</id>
+    <title>Causal Learning with Neural Assemblies</title>
+    <updated>2026-04-29T17:34:33Z</updated>
+    <link href="https://arxiv.org/abs/2604.26919v1" rel="alternate" type="text/html"/>
+    <link href="https://arxiv.org/pdf/2604.26919v1" rel="related" type="application/pdf" title="pdf"/>
+    <summary>Can Neural Assemblies -- groups of neurons that fire together and strengthen through co-activation -- learn the direction of causal influence between variables? While established as a computationally general substrate for classification, parsing, and planning, neural assemblies have not yet been shown to internalize causal directionality. We demonstrate that the inherent operations of neural assemblies -- projection, local plasticity control, and sparse winner selection -- are sufficient for directional learning. We introduce DIRECT (DIRectional Edge Coupling/Training), a mechanism that co-activates source and target assemblies under an adaptive gain schedule to internalize directed relations. Unlike backpropagation-based methods, DIRECT relies solely on local plasticity, making the resulting causal claims auditable at the mechanism level. Our findings are verified through a dual-readout validation strategy: (i) synaptic-strength asymmetry, measuring the emergent weight gap between forward and reverse links, and (ii) functional propagation overlap, quantifying the reliability of directional signal flow. Across multiple domains, the framework achieves perfect structural recovery under a supervised, known-structure setting. These results establish neural assemblies as an auditable bridge between biologically plausible dynamics and formal causal models, offering an "explainable by design" framework where causal claims are traceable to specific neural winners and synaptic asymmetries.</summary>
+    <category term="cs.LG" scheme="http://arxiv.org/schemas/atom"/>
+    <category term="cs.AI" scheme="http://arxiv.org/schemas/atom"/>
+    <category term="cs.NE" scheme="http://arxiv.org/schemas/atom"/>
+    <published>2026-04-29T17:34:33Z</published>
+    <arxiv:comment>8 pages, 11 figures</arxiv:comment>
+    <arxiv:primary_category term="cs.LG"/>
+    <author>
+      <name>Evangelia Kopadi</name>
+    </author>
+    <author>
+      <name>Dimitris Kalles</name>
+    </author>
+  </entry>
+  <entry>
+    <id>http://arxiv.org/abs/2604.26904v1</id>
+    <title>ClawGym: A Scalable Framework for Building Effective Claw Agents</title>
+    <updated>2026-04-29T17:12:22Z</updated>
+    <link href="https://arxiv.org/abs/2604.26904v1" rel="alternate" type="text/html"/>
+    <link href="https://arxiv.org/pdf/2604.26904v1" rel="related" type="application/pdf" title="pdf"/>
+    <summary>Claw-style environments support multi-step workflows over local files, tools, and persistent workspace states. However, scalable development around these environments remains constrained by the absence of a systematic framework, especially one for synthesizing verifiable training data and integrating it with agent training and diagnostic evaluation. To address this challenge, we present ClawGym, a scalable framework that supports the full lifecycle of Claw-style personal agent development. Concretely, we construct ClawGym-SynData, a diverse dataset of 13.5K filtered tasks synthesized from persona-driven intents and skill-grounded operations, paired with realistic mock workspaces and hybrid verification mechanisms. We then train a family of capable Claw-style models, termed ClawGym-Agents, through supervised fine-tuning on black-box rollout trajectories, and further explore reinforcement learning via a lightweight pipeline that parallelizes rollouts across per-task sandboxes.To support reliable evaluation, we further construct ClawGym-Bench, a benchmark of 200 instances calibrated through automated filtering and human-LLM review. Relevant resources will be soon released at https://github.com/ClawGym.</summary>
+    <category term="cs.CL" scheme="http://arxiv.org/schemas/atom"/>
+    <category term="cs.AI" scheme="http://arxiv.org/schemas/atom"/>
+    <category term="cs.LG" scheme="http://arxiv.org/schemas/atom"/>
+    <published>2026-04-29T17:12:22Z</published>
+    <arxiv:primary_category term="cs.CL"/>
+    <author>
+      <name>Fei Bai</name>
+    </author>
+    <author>
+      <name>Huatong Song</name>
+    </author>
+    <author>
+      <name>Shuang Sun</name>
+    </author>
+    <author>
+      <name>Daixuan Cheng</name>
+    </author>
+    <author>
+      <name>Yike Yang</name>
+    </author>
+    <author>
+      <name>Chuan Hao</name>
+    </author>
+    <author>
+      <name>Renyuan Li</name>
+    </author>
+    <author>
+      <name>Feng Chang</name>
+    </author>
+    <author>
+      <name>Yuan Wei</name>
+    </author>
+    <author>
+      <name>Ran Tao</name>
+    </author>
+    <author>
+      <name>Bryan Dai</name>
+    </author>
+    <author>
+      <name>Jian Yang</name>
+    </author>
+    <author>
+      <name>Wayne Xin Zhao</name>
+    </author>
+  </entry>
+  <entry>
+    <id>http://arxiv.org/abs/2604.26903v1</id>
+    <title>Recent Advances in mm-Wave and Sub-THz/THz Oscillators for FutureG Technologies</title>
+    <updated>2026-04-29T17:12:18Z</updated>
+    <link href="https://arxiv.org/abs/2604.26903v1" rel="alternate" type="text/html"/>
+    <link href="https://arxiv.org/pdf/2604.26903v1" rel="related" type="application/pdf" title="pdf"/>
+    <summary>This paper provides a concise yet comprehensive review of recent advancements in millimeter-wave (mm-wave) oscillators below 100 GHz and sub-terahertz (sub-THz/THz) oscillators above 100 GHz for next-generation computing and communication systems, including 5G, 6G, and beyond. Various design approaches, including CMOS, SiGe, and III-V semiconductor technologies, are explored in terms of performance metrics such as phase noise, output power, efficiency, frequency tunability, and stability. The review highlights key challenges in achieving high-performance and reliable oscillator designs while discussing emerging techniques for performance enhancement. By evaluating recent design trends, this work aims to offer valuable insights and design guidelines that facilitate the development of robust mm-wave and sub-THz/THz oscillators for future communication, computing, and sensing applications.</summary>
+    <category term="eess.SP" scheme="http://arxiv.org/schemas/atom"/>
+    <category term="cs.AI" scheme="http://arxiv.org/schemas/atom"/>
+    <category term="cs.AR" scheme="http://arxiv.org/schemas/atom"/>
+    <category term="cs.ET" scheme="http://arxiv.org/schemas/atom"/>
+    <category term="eess.SY" scheme="http://arxiv.org/schemas/atom"/>
+    <published>2026-04-29T17:12:18Z</published>
+    <arxiv:primary_category term="eess.SP"/>
+    <author>
+      <name>Baktash Behmanesh</name>
+    </author>
+    <author>
+      <name>Ahmad Rezvanitabar</name>
+    </author>
+  </entry>
+  <entry>
+    <id>http://arxiv.org/abs/2604.26898v1</id>
+    <title>Stochastic Scaling Limits and Synchronization by Noise in Deep Transformer Models</title>
+    <updated>2026-04-29T17:09:05Z</updated>
+    <link href="https://arxiv.org/abs/2604.26898v1" rel="alternate" type="text/html"/>
+    <link href="https://arxiv.org/pdf/2604.26898v1" rel="related" type="application/pdf" title="pdf"/>
+    <summary>We prove pathwise convergence of the layerwise evolution of tokens in a finite-depth, finite-width transformer model with MultiLayer Perceptron (MLP) blocks to a continuous-time stochastic interacting particle system. We also identify the stochastic partial differential equation describing the evolution of the tokens' distribution in this limit and prove propagation of chaos when the number of such tokens is large. The bounds we establish are quantitative and the limits we consider commute. We further prove that the limiting stochastic model displays synchronization by noise and establish exponential dissipation of the interaction energy on average, provided that the common noise is sufficiently coercive relative to the deterministic self-attention drift. We finally characterize the activation functions satisfying the former condition.</summary>
+    <category term="math.PR" scheme="http://arxiv.org/schemas/atom"/>
+    <category term="cs.LG" scheme="http://arxiv.org/schemas/atom"/>
+    <category term="stat.ML" scheme="http://arxiv.org/schemas/atom"/>
+    <published>2026-04-29T17:09:05Z</published>
+    <arxiv:comment>55 pages, 6 figures</arxiv:comment>
+    <arxiv:primary_category term="math.PR"/>
+    <author>
+      <name>Andrea Agazzi</name>
+    </author>
+    <author>
+      <name>Giuseppe Bruno</name>
+    </author>
+    <author>
+      <name>Eloy Mosig García</name>
+    </author>
+    <author>
+      <name>Samuele Saviozzi</name>
+    </author>
+    <author>
+      <name>Marco Romito</name>
+    </author>
+  </entry>
+  <entry>
+    <id>http://arxiv.org/abs/2604.26888v1</id>
+    <title>Multiple Additive Neural Networks for Structured and Unstructured Data</title>
+    <updated>2026-04-29T16:57:40Z</updated>
+    <link href="https://arxiv.org/abs/2604.26888v1" rel="alternate" type="text/html"/>
+    <link href="https://arxiv.org/pdf/2604.26888v1" rel="related" type="application/pdf" title="pdf"/>
+    <summary>This paper extends and explains the Multiple Additive Neural Networks (MANN) methodology, an enhancement to the traditional Gradient Boosting framework, utilizing nearly shallow neural networks instead of decision trees as base learners. This innovative approach leverages neural network architectures, notably Convolutional Neural Networks (CNNs) and Capsule Neural Networks, to extend its application to both structured data and unstructured data such as images and audio. For structured data the advantages of capsule neural networks as feature extractors are used and combined with MANN as a classifier. MANN's unique architecture promotes continuous learning and integrates advanced heuristics to combat overfitting, ensuring robustness and reducing sensitivity to hyperparameter settings like learning rate and iterations. Our empirical studies reveal that MANN surpasses traditional methods such as Extreme Gradient Boosting (XGB) in accuracy across well-known datasets. This research demonstrates MANN's superior precision and generalizability, making it a versatile tool for diverse data types and complex learning environments.</summary>
+    <category term="cs.LG" scheme="http://arxiv.org/schemas/atom"/>
+    <published>2026-04-29T16:57:40Z</published>
+    <arxiv:comment>Accepted author manuscript; page layout differs from the published Springer version</arxiv:comment>
+    <arxiv:primary_category term="cs.LG"/>
+    <arxiv:journal_ref>In: Bäck, T. et al. (eds.), Computational Intelligence, IJCCI 2023, Studies in Computational Intelligence, vol. 1196, Springer, Cham, pp. 165-186 (2025)</arxiv:journal_ref>
+    <author>
+      <name>Janis Mohr</name>
+    </author>
+    <author>
+      <name>Jörg Frochte</name>
+    </author>
+    <arxiv:doi>10.1007/978-3-031-85252-7_10</arxiv:doi>
+    <link rel="related" href="https://doi.org/10.1007/978-3-031-85252-7_10" title="doi"/>
+  </entry>
+  <entry>
+    <id>http://arxiv.org/abs/2604.26881v1</id>
+    <title>FaaSMoE: A Serverless Framework for Multi-Tenant Mixture-of-Experts Serving</title>
+    <updated>2026-04-29T16:47:48Z</updated>
+    <link href="https://arxiv.org/abs/2604.26881v1" rel="alternate" type="text/html"/>
+    <link href="https://arxiv.org/pdf/2604.26881v1" rel="related" type="application/pdf" title="pdf"/>
+    <summary>Mixture-of-Experts (MoE) models offer high capacity with efficient inference cost by activating a small subset of expert models per input. However, deploying MoE models requires all experts to reside in memory, creating a gap between the resource used by activated experts and the provisioned resources. This underutilization is further pronounced in multi-tenant scenarios. In this paper, we propose FaaSMoE, a multi-tenant MoE serving architecture built on Function-as-a-Service (FaaS) platforms. FaaSMoE decouples the control and execution planes of MoE by deploying experts as stateless FaaS functions, enabling on-demand and scale-to-zero expert invocation across tenants. FaaSMoE further supports configurable expert granularity within functions, trading off per-expert elasticity for reduced invocation overhead. We implement a prototype with an open-source edge-oriented FaaS platform and evaluate it using Qwen1.5-moe-2.7B under multi-tenant workloads. Compared to a full-model baseline, FaaSMoE uses less than one third of the resources, demonstrating a practical and resource-efficient path towards scalable MoE serving in a multi-tenant environment.</summary>
+    <category term="cs.DC" scheme="http://arxiv.org/schemas/atom"/>
+    <category term="cs.LG" scheme="http://arxiv.org/schemas/atom"/>
+    <published>2026-04-29T16:47:48Z</published>
+    <arxiv:comment>Accepted for publication in the 9th International Workshop on Edge Systems, Analytics and Networking (EdgeSys 2026)</arxiv:comment>
+    <arxiv:primary_category term="cs.DC"/>
+    <author>
+      <name>Minghe Wang</name>
+    </author>
+    <author>
+      <name>Trever Schirmer</name>
+    </author>
+    <author>
+      <name>Mohammadreza Malekabbasi</name>
+    </author>
+    <author>
+      <name>David Bermbach</name>
+    </author>
+  </entry>
+  <entry>
+    <id>http://arxiv.org/abs/2604.26880v1</id>
+    <title>HealthNLP_Retrievers at ArchEHR-QA 2026: Cascaded LLM Pipeline for Grounded Clinical Question Answering</title>
+    <updated>2026-04-29T16:47:20Z</updated>
+    <link href="https://arxiv.org/abs/2604.26880v1" rel="alternate" type="text/html"/>
+    <link href="https://arxiv.org/pdf/2604.26880v1" rel="related" type="application/pdf" title="pdf"/>
+    <summary>Patient portals now give individuals direct access to their electronic health records (EHRs), yet access alone does not ensure patients understand or act on the complex clinical information contained in these records. The ArchEHR-QA 2026 shared task addresses this challenge by focusing on grounded question answering over EHRs, and this paper presents the system developed by the HealthNLP_Retrievers team for this task. The proposed approach uses a multi-stage cascaded pipeline powered by the Gemini 2.5 Pro large language model to interpret patient-authored questions and retrieve relevant evidence from lengthy clinical notes. Our architecture comprises four integrated modules: (1) a few-shot query reformulation unit which summarizes verbose patient queries; (2) a heuristic-based evidence scorer which ranks clinical sentences to prioritize recall; (3) a grounded response generator which synthesizes professional-caliber answers restricted strictly to identified evidence; and (4) a high-precision many-to-many alignment framework which links generated answers to supporting clinical sentences. This cascaded approach achieved competitive results. Across the individual tracks, the system ranked 1st in question interpretation, 5th in answer generation, 7th in evidence identification, and 9th in answer-evidence alignment. These results show that integrating large language models within a structured multi-stage pipeline improves grounding, precision, and the professional quality of patient-oriented health communication. To support reproducibility, our source code is publicly available in our GitHub repository</summary>
+    <category term="cs.CL" scheme="http://arxiv.org/schemas/atom"/>
+    <category term="cs.LG" scheme="http://arxiv.org/schemas/atom"/>
+    <published>2026-04-29T16:47:20Z</published>
+    <arxiv:primary_category term="cs.CL"/>
+    <author>
+      <name>Md Biplob Hosen</name>
+    </author>
+    <author>
+      <name>Md Alomgeer Hussein</name>
+    </author>
+    <author>
+      <name>Md Akmol Masud</name>
+    </author>
+    <author>
+      <name>Omar Faruque</name>
+    </author>
+    <author>
+      <name>Tera L Reynolds</name>
+    </author>
+    <author>
+      <name>Lujie Karen Chen</name>
+    </author>
+  </entry>
+  <entry>
+    <id>http://arxiv.org/abs/2604.26869v1</id>
+    <title>KAYRA: A Microservice Architecture for AI-Assisted Karyotyping with Cloud and On-Premise Deployment</title>
+    <updated>2026-04-29T16:35:31Z</updated>
+    <link href="https://arxiv.org/abs/2604.26869v1" rel="alternate" type="text/html"/>
+    <link href="https://arxiv.org/pdf/2604.26869v1" rel="related" type="application/pdf" title="pdf"/>
+    <summary>We present KAYRA, an end-to-end karyotyping system that operates inside the operational constraints of a clinical cytogenetic laboratory. KAYRA is architected as a containerized microservice pipeline whose ML stack combines an EfficientNet-B5 + U-Net semantic segmenter, a Mask R-CNN (ResNet-50 + FPN) instance detector, and a ResNet-18 classifier, orchestrated through a cascaded ROI-narrowing strategy that focuses each downstream model on the chromosome-bearing region. The same container images are deployed both as a cloud service and as an on-premise installation, supporting clinical environments where patient-data egress is not permitted as well as those where it is. A pilot clinical evaluation against two commercial reference karyotyping systems on 459 chromosomes from 10 metaphase spreads shows segmentation accuracy of 98.91 % (vs. 78.21 % / 40.52 %), classification accuracy of 89.1 % (vs. 86.9 % / 54.5 %), and rotation accuracy of 89.76 % (vs. 94.55 % / 78.43 %). KAYRA improves over the older density-thresholding reference on all three axes (p &lt; 0.0001 for segmentation and classification by Fisher's exact test on chromosome-level counts), and on segmentation also against the modern AI- supported reference (p &lt; 0.0001); on classification the difference vs. the modern AI reference is not statistically significant at the present test-set size (p = 0.34). The system reaches TRL 6 maturity and integrates the human-in-the-loop expert-review workflow that diagnostic cytogenetic practice requires. The thesis of this paper is that a multi-model cytogenetic AI service can be packaged as a microservice architecture supporting flexible deployment - cloud-hosted or on-premise - while delivering strong empirical performance on a pilot clinical evaluation.</summary>
+    <category term="cs.LG" scheme="http://arxiv.org/schemas/atom"/>
+    <category term="cs.CV" scheme="http://arxiv.org/schemas/atom"/>
+    <published>2026-04-29T16:35:31Z</published>
+    <arxiv:primary_category term="cs.LG"/>
+    <author>
+      <name>Attila Pintér</name>
+    </author>
+    <author>
+      <name>Javier Rico</name>
+    </author>
+    <author>
+      <name>Attila Répai</name>
+    </author>
+    <author>
+      <name>Jalal Al-Afandi</name>
+    </author>
+    <author>
+      <name>Adrienn Éva Borsy</name>
+    </author>
+    <author>
+      <name>András Kozma</name>
+    </author>
+    <author>
+      <name>Hajnalka Andrikovics</name>
+    </author>
+    <author>
+      <name>György Cserey</name>
+    </author>
+  </entry>
+  <entry>
+    <id>http://arxiv.org/abs/2604.26866v1</id>
+    <title>MoRFI: Monotonic Sparse Autoencoder Feature Identification</title>
+    <updated>2026-04-29T16:32:57Z</updated>
+    <link href="https://arxiv.org/abs/2604.26866v1" rel="alternate" type="text/html"/>
+    <link href="https://arxiv.org/pdf/2604.26866v1" rel="related" type="application/pdf" title="pdf"/>
+    <summary>Large language models (LLMs) acquire most of their factual knowledge during the pre-training stage, through next token prediction. Subsequent stages of post-training often introduce new facts outwith the parametric knowledge, giving rise to hallucinations. While it has been demonstrated that supervised fine-tuning (SFT) on new knowledge may exacerbate the problem, the underlying mechanisms are still poorly understood. We conduct a controlled fine-tuning experiment, focusing on closed-book QA, and find latent directions that causally contribute to hallucinations. Specifically, we fine-tune Llama 3.1 8B, Gemma 2 9B and Mistral 7B v03 on seven distinct single QA datasets, controlling for the percentage of new knowledge and number of training epochs. By measuring performance on the test set, we validate that incrementally introducing new knowledge increases hallucinations, with the effect being more pronounced with prolonged training. We leverage pre-trained sparse autoencoders (SAEs) to analyze residual stream activations across various checkpoints for each model and propose Monotonic Relationship Feature Identification (MoRFI) for capturing causally relevant latents. MoRFI filters SAE features that respond monotonically to controlled fine-tuning data mixtures of a target property. Our findings show that exposure to unknown facts disrupts the model's ability to retrieve stored knowledge along a set of directions in the residual stream. Our pipeline reliably discovers them across distinct models, recovering knowledge through single-latent interventions.</summary>
+    <category term="cs.CL" scheme="http://arxiv.org/schemas/atom"/>
+    <category term="cs.LG" scheme="http://arxiv.org/schemas/atom"/>
+    <published>2026-04-29T16:32:57Z</published>
+    <arxiv:primary_category term="cs.CL"/>
+    <author>
+      <name>Dimitris Dimakopoulos</name>
+    </author>
+    <author>
+      <name>Shay B. Cohen</name>
+    </author>
+    <author>
+      <name>Ioannis Konstas</name>
+    </author>
+  </entry>
+  <entry>
+    <id>http://arxiv.org/abs/2604.26857v1</id>
+    <title>Edge AI for Automotive Vulnerable Road User Safety: Deployable Detection via Knowledge Distillation</title>
+    <updated>2026-04-29T16:24:45Z</updated>
+    <link href="https://arxiv.org/abs/2604.26857v1" rel="alternate" type="text/html"/>
+    <link href="https://arxiv.org/pdf/2604.26857v1" rel="related" type="application/pdf" title="pdf"/>
+    <summary>Deploying accurate object detection for Vulnerable Road User (VRU) safety on edge hardware requires balancing model capacity against computational constraints. Large models achieve high accuracy but fail under INT8 quantization required for edge deployment, while small models sacrifice detection performance. This paper presents a knowledge distillation (KD) framework that trains a compact YOLOv8-S student (11.2M parameters) to mimic a YOLOv8-L teacher (43.7M parameters), achieving 3.9x compression while preserving quantization robustness. We evaluate on full-scale BDD100K (70K training images) with Post-Training Quantization to INT8. The teacher suffers catastrophic degradation under INT8 (-23% mAP), while the KD student retains accuracy (-5.6% mAP). Analysis reveals that KD transfers precision calibration rather than raw detection capacity: the KD student achieves 0.748 precision versus 0.653 for direct training at INT8, a 14.5% gain at equivalent recall, reducing false alarms by 44% versus the collapsed teacher. At INT8, the KD student exceeds the teacher's FP32 precision (0.748 vs. 0.718) in a model 3.9x smaller. These findings establish knowledge distillation as a requirement for deploying accurate, safety-critical VRU detection on edge hardware.</summary>
+    <category term="cs.CV" scheme="http://arxiv.org/schemas/atom"/>
+    <category term="cs.LG" scheme="http://arxiv.org/schemas/atom"/>
+    <category term="cs.RO" scheme="http://arxiv.org/schemas/atom"/>
+    <category term="eess.IV" scheme="http://arxiv.org/schemas/atom"/>
+    <published>2026-04-29T16:24:45Z</published>
+    <arxiv:comment>6 pages, 3 figures</arxiv:comment>
+    <arxiv:primary_category term="cs.CV"/>
+    <author>
+      <name>Akshay Karjol</name>
+    </author>
+    <author>
+      <name>Darrin M. Hanna</name>
+    </author>
+  </entry>
+  <entry>
+    <id>http://arxiv.org/abs/2604.26851v1</id>
+    <title>Resume-ing Control: (Mis)Perceptions of Agency Around GenAI Use in Recruiting Workflows</title>
+    <updated>2026-04-29T16:17:16Z</updated>
+    <link href="https://arxiv.org/abs/2604.26851v1" rel="alternate" type="text/html"/>
+    <link href="https://arxiv.org/pdf/2604.26851v1" rel="related" type="application/pdf" title="pdf"/>
+    <summary>When generative AI (genAI) systems are used in high-stakes decision-making, its recommended role is to aid, rather than replace, human decision-making. However, there is little empirical exploration of how professionals making high-stakes decisions, such as those related to employment, perceive their agency and level of control when working with genAI systems. Through interviews with 22 recruiting professionals, we investigate how genAI subtly influences control over everyday workflows and even individual hiring decisions. Our findings highlight a pressing conflict: while recruiters believe they have final authority across the recruiting pipeline, genAI has become an invisible architect that shapes the foundational building blocks of information used for evaluation, from defining a job to determining good interview performances. The decision of whether or not to adopt was also often outside recruiters' control, with many feeling compelled to adopt genAI due to calls to integrate AI from higher-ups in their business, to combat applicant use of AI, and the individual need to boost productivity. Despite a seemingly seismic shift in how recruiting happens, participants only reported marginal efficiency gains. Such gains came at the high cost of recruiter deskilling, a trend that jeopardizes the meaningful oversight of decision-making. We conclude by discussing the implications of such findings for responsible and perceptible genAI use in hiring contexts.</summary>
+    <category term="cs.CY" scheme="http://arxiv.org/schemas/atom"/>
+    <category term="cs.AI" scheme="http://arxiv.org/schemas/atom"/>
+    <published>2026-04-29T16:17:16Z</published>
+    <arxiv:comment>22 pages, 3 tables, submitted January 2026, accepted March 2026</arxiv:comment>
+    <arxiv:primary_category term="cs.CY"/>
+    <author>
+      <name>Sajel Surati</name>
+    </author>
+    <author>
+      <name>Rosanna Bellini</name>
+    </author>
+    <author>
+      <name>Emily Black</name>
+    </author>
+    <arxiv:doi>10.1145/3805689.3806498</arxiv:doi>
+    <link rel="related" href="https://doi.org/10.1145/3805689.3806498" title="doi"/>
+  </entry>
+  <entry>
+    <id>http://arxiv.org/abs/2604.26841v1</id>
+    <title>Language Diffusion Models are Associative Memories Capable of Retrieving Unseen Data</title>
+    <updated>2026-04-29T16:06:45Z</updated>
+    <link href="https://arxiv.org/abs/2604.26841v1" rel="alternate" type="text/html"/>
+    <link href="https://arxiv.org/pdf/2604.26841v1" rel="related" type="application/pdf" title="pdf"/>
+    <summary>When do language diffusion models memorize their training data, and how to quantitatively assess their true generative regime? We address these questions by showing that Uniform-based Discrete Diffusion Models (UDDMs) fundamentally behave as Associative Memories (AMs) $\textit{with emergent creative capabilities}$. The core idea of an AM is to reliably recover stored data points as $\textit{memories}$ by establishing distinct basins of attraction around them. Historically, models like Hopfield networks use an explicit energy function to guarantee these stable attractors. We broaden this perspective by leveraging the observation that energy is not strictly necessary, as basins of attraction can also be formed via conditional likelihood maximization. By evaluating token recovery of $\textit{training}$ and $\textit{test}$ examples, we identify in UDDMs a sharp memorization-to-generalization transition governed by the size of the training dataset: as it increases, basins around training examples shrink and basins around unseen test examples expand, until both later converge to the same level. Crucially, we can detect this transition using only the conditional entropy of predicted token sequences: memorization is characterized by vanishing conditional entropy, while in the generalization regime the conditional entropy of most tokens remains finite. Thus, conditional entropy offers a practical probe for the memorization-to-generalization transition in deployed models.</summary>
+    <category term="cs.LG" scheme="http://arxiv.org/schemas/atom"/>
+    <category term="cs.AI" scheme="http://arxiv.org/schemas/atom"/>
+    <category term="cs.CL" scheme="http://arxiv.org/schemas/atom"/>
+    <published>2026-04-29T16:06:45Z</published>
+    <arxiv:comment>Also see arXiv:2505.21777 for a related work</arxiv:comment>
+    <arxiv:primary_category term="cs.LG"/>
+    <author>
+      <name>Bao Pham</name>
+    </author>
+    <author>
+      <name>Mohammed J. Zaki</name>
+    </author>
+    <author>
+      <name>Luca Ambrogioni</name>
+    </author>
+    <author>
+      <name>Dmitry Krotov</name>
+    </author>
+    <author>
+      <name>Matteo Negri</name>
+    </author>
+  </entry>
+  <entry>
+    <id>http://arxiv.org/abs/2604.26837v1</id>
+    <title>Unifying Sparse Attention with Hierarchical Memory for Scalable Long-Context LLM Serving</title>
+    <updated>2026-04-29T16:02:00Z</updated>
+    <link href="https://arxiv.org/abs/2604.26837v1" rel="alternate" type="text/html"/>
+    <link href="https://arxiv.org/pdf/2604.26837v1" rel="related" type="application/pdf" title="pdf"/>
+    <summary>Long-context LLM serving is bottlenecked by the cost of attending over ever-growing KV caches. Dynamic sparse attention promises relief by accessing only a small, query-dependent subset of the KV state per decoding step and extending the KV storage to CPU memory. In practice, however, these algorithmic savings rarely translate into end-to-end system-level gains because sparse methods typically operate at different granularities and thus rely on ad hoc, per-algorithm implementations. At the same time, hierarchical KV storage introduces a new systems bottleneck: retrieving fine-grained, irregular KV subsets across the GPU-CPU boundary can easily erase the benefits of sparsity.
+  We present SPIN, a sparse-attention-aware inference framework that co-designs the execution pipeline with hierarchical KV storage through three techniques: (1) a unified partition abstraction that maps different sparsity granularities onto a shared page-based KV substrate; (2) a locality-aware KV cache manager that dynamically sizes per-request HBM budgets and uses a GPU-friendly bucketed LRU policy to cut PCIe round-trips; and (3) a two-level hierarchical metadata layout sized to the active working set rather than the worst-case address space. Built on vLLM with three representative sparse attention algorithms, SPIN delivers 1.66-5.66x higher end-to-end throughput and 7-9x lower TTFT than vLLM, and reduces TPOT by up to 58% over the original sparse-attention implementations.</summary>
+    <category term="cs.LG" scheme="http://arxiv.org/schemas/atom"/>
+    <published>2026-04-29T16:02:00Z</published>
+    <arxiv:comment>15 pages</arxiv:comment>
+    <arxiv:primary_category term="cs.LG"/>
+    <author>
+      <name>Zihan Zhao</name>
+    </author>
+    <author>
+      <name>Baotong Lu</name>
+    </author>
+    <author>
+      <name>Shengjie Lin</name>
+    </author>
+    <author>
+      <name>Yizou Chen</name>
+    </author>
+    <author>
+      <name>Jing Liu</name>
+    </author>
+    <author>
+      <name>Yanqi Zhang</name>
+    </author>
+    <author>
+      <name>Ziming Miao</name>
+    </author>
+    <author>
+      <name>Ming-Chang Yang</name>
+    </author>
+    <author>
+      <name>Haiying Shen</name>
+    </author>
+    <author>
+      <name>Qi Chen</name>
+    </author>
+    <author>
+      <name>Fan Yang</name>
+    </author>
+  </entry>
+  <entry>
+    <id>http://arxiv.org/abs/2604.26836v1</id>
+    <title>Uncertainty-Aware Predictive Safety Filters for Probabilistic Neural Network Dynamics</title>
+    <updated>2026-04-29T16:01:59Z</updated>
+    <link href="https://arxiv.org/abs/2604.26836v1" rel="alternate" type="text/html"/>
+    <link href="https://arxiv.org/pdf/2604.26836v1" rel="related" type="application/pdf" title="pdf"/>
+    <summary>Predictive safety filters (PSFs) leverage model predictive control to enforce constraint satisfaction during deep reinforcement learning (RL) exploration, yet their reliance on first-principles models or Gaussian processes limits scalability and broader applicability. Meanwhile, model-based RL (MBRL) methods routinely employ probabilistic ensemble (PE) neural networks to capture complex, high-dimensional dynamics from data with minimal prior knowledge. However, existing attempts to integrate PEs into PSFs lack rigorous uncertainty quantification. We introduce the Uncertainty-Aware Predictive Safety Filter (UPSi), a PSF that provides rigorous safety predictions using PE dynamics models by formulating future outcomes as reachable sets. UPSi introduces an explicit certainty constraint that prevents model exploitation and integrates seamlessly into common MBRL frameworks. We evaluate UPSi within Dyna-style MBRL on standard safe RL benchmarks and report substantial improvements in exploration safety over prior neural network PSFs while maintaining performance on par with standard MBRL. UPSi bridges the gap between the scalability and generality of modern MBRL and the safety guarantees of predictive safety filters.</summary>
+    <category term="cs.LG" scheme="http://arxiv.org/schemas/atom"/>
+    <category term="eess.SY" scheme="http://arxiv.org/schemas/atom"/>
+    <published>2026-04-29T16:01:59Z</published>
+    <arxiv:primary_category term="cs.LG"/>
+    <author>
+      <name>Bernd Frauenknecht</name>
+    </author>
+    <author>
+      <name>Lukas Kesper</name>
+    </author>
+    <author>
+      <name>Daniel Mayfrank</name>
+    </author>
+    <author>
+      <name>Henrik Hose</name>
+    </author>
+    <author>
+      <name>Sebastian Trimpe</name>
+    </author>
+  </entry>
+  <entry>
+    <id>http://arxiv.org/abs/2604.26835v1</id>
+    <title>HalluCiteChecker: A Lightweight Toolkit for Hallucinated Citation Detection and Verification in the Era of AI Scientists</title>
+    <updated>2026-04-29T16:01:42Z</updated>
+    <link href="https://arxiv.org/abs/2604.26835v1" rel="alternate" type="text/html"/>
+    <link href="https://arxiv.org/pdf/2604.26835v1" rel="related" type="application/pdf" title="pdf"/>
+    <summary>We introduce HalluCiteChecker, a toolkit for detecting and verifying hallucinated citations in scientific papers. While AI assistant technologies have transformed the academic writing process, including citation recommendation, they have also led to the emergence of hallucinated citations that do not correspond to any existing work. Such citations not only undermine the credibility of scientific papers but also impose an additional burden on reviewers and authors, who must manually verify their validity during the review process. In this study, we formalize hallucinated citation detection as an NLP task and provide a corresponding toolkit as a practical foundation for addressing this problem. Our package is lightweight and can perform verification in seconds on a standard laptop. It can also be executed entirely offline and runs efficiently using only CPUs. We hope that HalluCiteChecker will help reduce reviewer workload and support organizers by enabling systematic pre-review and publication checks. Our code is released under the Apache 2.0 license on GitHub and is distributed as an installable package via PyPI. A demonstration video is available on YouTube.</summary>
+    <category term="cs.CL" scheme="http://arxiv.org/schemas/atom"/>
+    <category term="cs.AI" scheme="http://arxiv.org/schemas/atom"/>
+    <category term="cs.DL" scheme="http://arxiv.org/schemas/atom"/>
+    <published>2026-04-29T16:01:42Z</published>
+    <arxiv:comment>Work In Progress</arxiv:comment>
+    <arxiv:primary_category term="cs.CL"/>
+    <author>
+      <name>Yusuke Sakai</name>
+    </author>
+    <author>
+      <name>Hidetaka Kamigaito</name>
+    </author>
+    <author>
+      <name>Taro Watanabe</name>
+    </author>
+  </entry>
+</feed>

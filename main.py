@@ -11,13 +11,14 @@ from runner import Runner
 def main() -> None:
     runner = Runner(
         hours=100,                  # look back this many hours (default: 24)
-        fetch_content=True,       # set True to download full article text via Docling
-        fetch_transcripts=True,    # set True to download YouTube transcripts
+        fetch_transcripts=True,     # set True to download YouTube transcripts
     )
+    # Per-source content fetching is configured in config/sources.json
+    # (per-source `fetch_content` flag), not at the Runner level.
     report = runner.run()
 
     # `report` dict is available for downstream use (e.g. pass to an agent)
-    # Keys: generated_at, hours, anthropic, youtube
+    # Keys: generated_at, hours, blogs, youtube
 
 
 if __name__ == "__main__":

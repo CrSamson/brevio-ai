@@ -1,0 +1,117 @@
+{
+  "_comment": "Driver config for the multi-source aggregator. blogs[] is consumed by RssBlogScraper; papers[] is consumed by the arxiv + hf_daily scrapers (Phases 4-5). To disable a source, set enabled=false. To pull full article markdown via Docling for a source, set fetch_content=true.",
+
+  "blogs": [
+    {
+      "id": "anthropic_news",
+      "name": "Anthropic - News",
+      "type": "rss",
+      "feed_url": "https://raw.githubusercontent.com/Olshansk/rss-feeds/main/feeds/feed_anthropic_news.xml",
+      "fetch_content": false,
+      "enabled": true,
+      "fragile": false
+    },
+    {
+      "id": "anthropic_research",
+      "name": "Anthropic - Research",
+      "type": "rss",
+      "feed_url": "https://raw.githubusercontent.com/Olshansk/rss-feeds/main/feeds/feed_anthropic_research.xml",
+      "fetch_content": false,
+      "enabled": true,
+      "fragile": false
+    },
+    {
+      "id": "anthropic_engineering",
+      "name": "Anthropic - Engineering",
+      "type": "rss",
+      "feed_url": "https://raw.githubusercontent.com/Olshansk/rss-feeds/main/feeds/feed_anthropic_engineering.xml",
+      "fetch_content": false,
+      "enabled": true,
+      "fragile": false
+    },
+    {
+      "id": "openai_news",
+      "name": "OpenAI - News",
+      "type": "rss",
+      "feed_url": "https://openai.com/news/rss.xml",
+      "fetch_content": false,
+      "enabled": true,
+      "fragile": false
+    },
+    {
+      "id": "google_research",
+      "name": "Google Research",
+      "type": "rss",
+      "feed_url": "https://research.google/blog/rss/",
+      "fetch_content": false,
+      "enabled": true,
+      "fragile": false
+    },
+    {
+      "id": "aws_ml",
+      "name": "AWS Machine Learning Blog",
+      "type": "rss",
+      "feed_url": "https://aws.amazon.com/blogs/machine-learning/feed/",
+      "fetch_content": false,
+      "enabled": true,
+      "fragile": false
+    },
+    {
+      "id": "nvidia_developer",
+      "name": "NVIDIA Developer Blog",
+      "type": "rss",
+      "feed_url": "https://developer.nvidia.com/blog/feed/",
+      "fetch_content": false,
+      "enabled": true,
+      "fragile": false
+    },
+    {
+      "id": "bair",
+      "name": "Berkeley AI Research",
+      "type": "rss",
+      "feed_url": "https://bair.berkeley.edu/blog/feed.xml",
+      "fetch_content": false,
+      "enabled": true,
+      "fragile": false
+    },
+    {
+      "id": "cmu_ml",
+      "name": "CMU Machine Learning Blog",
+      "type": "rss",
+      "feed_url": "https://blog.ml.cmu.edu/feed/",
+      "fetch_content": false,
+      "enabled": true,
+      "fragile": false
+    },
+    {
+      "id": "techcrunch_ai",
+      "name": "TechCrunch - AI",
+      "type": "rss",
+      "feed_url": "https://techcrunch.com/category/artificial-intelligence/feed/",
+      "fetch_content": false,
+      "enabled": true,
+      "fragile": true
+    }
+  ],
+
+  "papers": [
+    {
+      "id": "arxiv_cs_lg_ai",
+      "name": "arXiv cs.LG + cs.AI",
+      "type": "arxiv",
+      "categories": ["cs.LG", "cs.AI"],
+      "max_results": 10,
+      "keyword_filter": null,
+      "enabled": true
+    },
+    {
+      "id": "hf_daily_papers",
+      "name": "Hugging Face Daily Papers",
+      "type": "hf_daily",
+      "feed_url": "https://raw.githubusercontent.com/huangboming/huggingface-daily-paper-feed/main/feed.xml",
+      "fallback_feed_url": "https://papers.takara.ai/api/feed",
+      "enabled": true,
+      "fragile": true
+    }
+  ]
+}

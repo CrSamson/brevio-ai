@@ -1,57 +1,30 @@
 """
 app/database/models.py — SQLAlchemy ORM models.
 
-Tables mirror the exact fields produced by the scrapers:
-  • AnthropicArticle  ← scrapers/anthropic_scrapper.py  (AnthropicArticle.model_dump)
-  • YoutubeVideo      ← scrapers/youtube_scraper.py      (VideoMetadata.model_dump)
-                        + channel / transcript fields added by runner.py
+Tables:
+  • Article       — any blog/news post from any source. Conflict key: url.
+  • Paper         — arXiv / HF Daily Papers entries. Conflict key: arxiv_id
+                    (partial unique index, with url unique as fallback).
+  • YoutubeVideo  — YouTube video metadata + transcript.
+                    Conflict key: video_id.
 """
-
-from datetime import datetime, timezone
 
 from sqlalchemy import (
     BigInteger,
+    Boolean,
     Column,
     DateTime,
+    Index,
+    Integer,
     String,
     Text,
     func,
+    text,
 )
+from sqlalchemy.dialects.postgresql import ARRAY, JSONB
 from sqlalchemy.orm import declarative_base
 
 Base = declarative_base()
-
-
-def _now() -> datetime:
-    return datetime.now(timezone.utc)
-
-
-class AnthropicArticle(Base):
-    """
-    Stores every Anthropic blog / research / engineering article.
-
-    Unique key: url  (one row per canonical article URL)
-    """
-
-    __tablename__ = "anthropic_articles"
-
-    id           = Column(BigInteger, primary_key=True, autoincrement=True)
-
-    # --- scraper fields ---
-    title        = Column(String(512),  nullable=False)
-    description  = Column(Text,         nullable=False, default="")
-    url          = Column(String(2048), nullable=False, unique=True)   # conflict key
-    guid         = Column(String(2048), nullable=True)
-    published_at = Column(DateTime(timezone=True), nullable=False)
-    category     = Column(String(256),  nullable=True)
-    content      = Column(Text,         nullable=False, default="")    # full article markdown
-    summary      = Column(Text,         nullable=False, default="")    # LLM-generated per-row summary
-
-    # --- housekeeping ---
-    created_at   = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
-
-    def __repr__(self) -> str:
-        return f"<AnthropicArticle id={self.id} title={self.title!r}>"
 
 
 class YoutubeVideo(Base):
@@ -82,3 +55,97 @@ class YoutubeVideo(Base):
 
     def __repr__(self) -> str:
         return f"<YoutubeVideo id={self.id} video_id={self.video_id!r} title={self.title!r}>"
+
+
+class Article(Base):
+    """
+    Any blog / news post from any source.
+
+    Conflict key: `url` (unique). One row per canonical URL.
+    `source` identifies which entry of config/sources.json produced the row,
+    e.g. 'anthropic_news', 'openai_news', 'aws_ml'.
+    """
+
+    __tablename__ = "articles"
+
+    id              = Column(BigInteger, primary_key=True, autoincrement=True)
+
+    source          = Column(String(64),  nullable=False, index=True)
+    url             = Column(Text,        nullable=False, unique=True)   # conflict key
+    title           = Column(Text,        nullable=False)
+    author          = Column(Text,        nullable=True)
+    published_at    = Column(DateTime(timezone=True), nullable=True, index=True)
+
+    summary         = Column(Text,        nullable=True)                 # LLM-generated, set later
+    content_md      = Column(Text,        nullable=True)                 # Docling output
+    content_fetched = Column(Boolean,     nullable=False,
+                             default=False, server_default=text("false"))
+
+    # Original feedparser entry, kept verbatim so we don't lose anything.
+    raw_metadata    = Column(JSONB,       nullable=False,
+                             default=dict, server_default=text("'{}'::jsonb"))
+
+    created_at      = Column(DateTime(timezone=True),
+                             server_default=func.now(), nullable=False)
+    updated_at      = Column(DateTime(timezone=True),
+                             server_default=func.now(), onupdate=func.now(),
+                             nullable=False)
+
+    def __repr__(self) -> str:
+        return f"<Article id={self.id} source={self.source!r} title={self.title!r}>"
+
+
+class Paper(Base):
+    """
+    arXiv / HuggingFace Daily Papers entries.
+
+    Conflict key: `arxiv_id` (unique partial — only enforced when not NULL).
+    `url` is also unique as a fallback for non-arXiv entries.
+    `sources` is an array so a single row can be tagged with multiple
+    discoveries, e.g. {'arxiv'}, {'arxiv','hf_daily'}.
+    """
+
+    __tablename__ = "papers"
+
+    id                = Column(BigInteger, primary_key=True, autoincrement=True)
+
+    sources           = Column(ARRAY(String), nullable=False,
+                               server_default=text("ARRAY[]::varchar[]"))
+    arxiv_id          = Column(String(32),  nullable=True)               # e.g. "2401.12345"
+    url               = Column(Text,        nullable=False, unique=True)
+    pdf_url           = Column(Text,        nullable=True)
+
+    title             = Column(Text,        nullable=False)
+    authors           = Column(JSONB,       nullable=False,
+                               default=list, server_default=text("'[]'::jsonb"))
+    abstract          = Column(Text,        nullable=True)
+    categories        = Column(JSONB,       nullable=False,
+                               default=list, server_default=text("'[]'::jsonb"))
+
+    published_at      = Column(DateTime(timezone=True), nullable=True, index=True)
+    updated_at_arxiv  = Column(DateTime(timezone=True), nullable=True)
+    hf_upvotes        = Column(Integer,     nullable=True)
+
+    summary           = Column(Text,        nullable=True)              # LLM-generated, set later
+
+    raw_metadata      = Column(JSONB,       nullable=False,
+                               default=dict, server_default=text("'{}'::jsonb"))
+
+    created_at        = Column(DateTime(timezone=True),
+                               server_default=func.now(), nullable=False)
+    updated_at        = Column(DateTime(timezone=True),
+                               server_default=func.now(), onupdate=func.now(),
+                               nullable=False)
+
+    __table_args__ = (
+        # Unique only where arxiv_id is set — non-arXiv rows can coexist with NULLs.
+        Index(
+            "ix_papers_arxiv_id_unique",
+            "arxiv_id",
+            unique=True,
+            postgresql_where=text("arxiv_id IS NOT NULL"),
+        ),
+    )
+
+    def __repr__(self) -> str:
+        return f"<Paper id={self.id} arxiv_id={self.arxiv_id!r} title={self.title!r}>"

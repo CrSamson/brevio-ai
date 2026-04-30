@@ -37,9 +37,11 @@ from dotenv import load_dotenv
 from agent.digest import build_digest, render_html, render_text, send_email
 from agent.summarizer import Summarizer
 from app.database.crud import (
-    get_unsummarized_anthropic_articles,
+    get_unsummarized_articles,
+    get_unsummarized_papers,
     get_unsummarized_youtube_videos,
-    set_anthropic_summary,
+    set_article_summary,
+    set_paper_summary,
     set_youtube_summary,
 )
 from app.database.db import get_db
@@ -63,22 +65,32 @@ log = logging.getLogger("scheduler")
 
 def _scrape(hours: int) -> None:
     log.info("step 1/3 — scraping (lookback=%dh)", hours)
-    Runner(hours=hours, fetch_content=True, fetch_transcripts=True).run()
+    # Per-source content fetching is now configured in config/sources.json,
+    # not via the Runner constructor.
+    Runner(hours=hours, fetch_transcripts=True).run()
 
 
 def _summarize() -> None:
     log.info("step 2/3 — summarizing unsummarized rows")
     summarizer = Summarizer()
     with get_db() as db:
-        articles = get_unsummarized_anthropic_articles(db)
+        articles = get_unsummarized_articles(db)
+        papers   = get_unsummarized_papers(db)
         videos   = get_unsummarized_youtube_videos(db)
-        log.info("  %d article(s), %d video(s) to summarize", len(articles), len(videos))
+        log.info("  %d article(s), %d paper(s), %d video(s) to summarize",
+                 len(articles), len(papers), len(videos))
 
         for a in articles:
             try:
-                set_anthropic_summary(db, a.id, summarizer.summarize_anthropic_article(a))
+                set_article_summary(db, a.id, summarizer.summarize_article(a))
             except Exception as e:  # noqa: BLE001 — keep batch going
                 log.warning("    article id=%s failed: %s", a.id, e)
+
+        for p in papers:
+            try:
+                set_paper_summary(db, p.id, summarizer.summarize_paper(p))
+            except Exception as e:  # noqa: BLE001
+                log.warning("    paper id=%s failed: %s", p.id, e)
 
         for v in videos:
             try:
@@ -89,8 +101,8 @@ def _summarize() -> None:
 
 def _email_digest(hours: int) -> None:
     log.info("step 3/3 — building + sending digest (window=%dh)", hours)
-    articles, videos = build_digest(hours=hours)
-    total = len(articles) + len(videos)
+    articles, papers, videos = build_digest(hours=hours)
+    total = len(articles) + len(papers) + len(videos)
     if total == 0:
         log.info("  nothing to send for the last %dh", hours)
         return
@@ -112,8 +124,8 @@ def _email_digest(hours: int) -> None:
     )
     send_email(
         subject=subject,
-        text_body=render_text(hours=hours, articles=articles, videos=videos),
-        html_body=render_html(hours=hours, articles=articles, videos=videos),
+        text_body=render_text(hours=hours, articles=articles, papers=papers, videos=videos),
+        html_body=render_html(hours=hours, articles=articles, papers=papers, videos=videos),
         recipients=recipients,
     )
     log.info("  sent to %s", ", ".join(recipients))

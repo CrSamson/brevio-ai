@@ -37,12 +37,54 @@ from pathlib import Path
 from dotenv import load_dotenv
 
 from app.database.crud import (
-    get_recent_summarized_anthropic_articles,
+    get_recent_summarized_articles,
+    get_recent_summarized_papers,
     get_recent_summarized_youtube_videos,
 )
 from app.database.db import get_db
-from app.database.models import AnthropicArticle, YoutubeVideo
-from scrapers.anthropic_scrapper import clean_anthropic_title
+from app.database.models import Article, Paper, YoutubeVideo
+
+
+# ---------------------------------------------------------------------------
+# Anthropic title cleanup (was scrapers/anthropic_scrapper.clean_anthropic_title)
+# ---------------------------------------------------------------------------
+# The Olshansk RSS mirror prepends each Anthropic title with a date and
+# category, no separator (e.g. "Apr 29, 2026ScienceEvaluating ..."). This
+# strips both. Applied via _article_title() only to rows whose source
+# starts with 'anthropic_'; other sources have clean titles already.
+import re
+
+_ANTHROPIC_DATE_PREFIX_RE = re.compile(
+    r"^(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*"
+    r"\s+\d{1,2},\s*\d{4}"
+)
+_ANTHROPIC_CATEGORIES: tuple[str, ...] = (
+    "Customer Stories",
+    "Customer story",
+    "Announcements",
+    "Engineering",
+    "Education",
+    "Interpretability",
+    "Product",
+    "Policy",
+    "Research",
+    "Science",
+    "Society",
+    "News",
+)
+
+
+def clean_anthropic_title(raw: str) -> str:
+    """Strip the leading date and category prepended by the Olshansk feed."""
+    s = (raw or "").strip()
+    m = _ANTHROPIC_DATE_PREFIX_RE.match(s)
+    if m:
+        s = s[m.end():].lstrip()
+    for cat in _ANTHROPIC_CATEGORIES:
+        if s.startswith(cat):
+            s = s[len(cat):].lstrip()
+            break
+    return s
 
 
 _PROJECT_ROOT = Path(__file__).resolve().parents[1]
@@ -74,11 +116,22 @@ def _summary_to_paragraph(summary: str) -> str:
     return " ".join(parts)
 
 
-def _anthropic_meta(article: AnthropicArticle) -> str:
-    parts = [article.published_at.strftime("%Y-%m-%d")]
-    if article.category:
-        parts.append(article.category)
+def _article_meta(article: Article) -> str:
+    parts: list[str] = []
+    if article.published_at:
+        parts.append(article.published_at.strftime("%Y-%m-%d"))
+    if article.source:
+        parts.append(article.source)
     return " · ".join(parts)
+
+
+def _article_title(article: Article) -> str:
+    """Per-source title cleanup. Only Anthropic feeds need it (the
+    Olshansk RSS mirror prepends a date+category run-on prefix to titles).
+    Other sources return clean titles already."""
+    if article.source.startswith("anthropic_"):
+        return clean_anthropic_title(article.title)
+    return article.title
 
 
 def _youtube_meta(video: YoutubeVideo) -> str:
@@ -88,15 +141,36 @@ def _youtube_meta(video: YoutubeVideo) -> str:
     return " · ".join(parts)
 
 
+def _paper_meta(paper: Paper) -> str:
+    parts: list[str] = []
+    if paper.published_at:
+        parts.append(paper.published_at.strftime("%Y-%m-%d"))
+    if paper.categories:
+        parts.append(", ".join(paper.categories[:3]))
+    if paper.hf_upvotes is not None and paper.hf_upvotes > 0:
+        parts.append(f"↑ {paper.hf_upvotes}")
+    return " · ".join(parts)
+
+
+def _paper_authors(paper: Paper) -> str:
+    """First 3 authors + 'et al.' if more. Empty string if no authors."""
+    if not paper.authors:
+        return ""
+    if len(paper.authors) <= 3:
+        return ", ".join(paper.authors)
+    return ", ".join(paper.authors[:3]) + " et al."
+
+
 def _youtube_thumbnail(video_id: str) -> str:
     """`hqdefault.jpg` always exists for any video and is 480x360 — safe default."""
     return f"https://i.ytimg.com/vi/{video_id}/hqdefault.jpg"
 
 
 def _card_html(*, url: str, title: str, meta: str, summary: str,
-               thumbnail: str | None, cta: str) -> str:
-    """One article/video card. No leading whitespace inside <a> tags — Gmail
-    preserves it as a leading space before the link text."""
+               thumbnail: str | None, cta: str,
+               authors: str | None = None) -> str:
+    """One article/paper/video card. No leading whitespace inside <a> tags —
+    Gmail preserves it as a leading space before the link text."""
     safe_url   = html.escape(url)
     safe_title = html.escape(title)
     safe_meta  = html.escape(meta)
@@ -115,12 +189,20 @@ def _card_html(*, url: str, title: str, meta: str, summary: str,
             f'border-radius:10px;border:0;outline:none;"></a>'
         )
 
+    authors_block = ""
+    if authors:
+        authors_block = (
+            f'<div style="font-size:13px;color:#475569;margin:0 0 6px;'
+            f'font-style:italic;">{html.escape(authors)}</div>'
+        )
+
     return (
         f'<div style="margin:0 0 36px;padding:0 0 28px;border-bottom:1px solid #eee;">'
         f'{img}'
         f'<h3 style="font-size:18px;font-weight:700;line-height:1.3;margin:0 0 6px;">'
         f'<a href="{safe_url}" style="color:#0f172a;text-decoration:none;">{safe_title}</a>'
         f'</h3>'
+        f'{authors_block}'
         f'<div style="font-size:12px;color:#94a3b8;margin:0 0 10px;'
         f'text-transform:uppercase;letter-spacing:0.04em;">{safe_meta}</div>'
         f'<p style="font-size:15px;line-height:1.6;color:#334155;margin:0 0 12px;">'
@@ -134,7 +216,8 @@ def _card_html(*, url: str, title: str, meta: str, summary: str,
 def render_html(
     *,
     hours: int,
-    articles: list[AnthropicArticle],
+    articles: list[Article],
+    papers: list[Paper],
     videos: list[YoutubeVideo],
 ) -> str:
     """Inline-styled HTML — no <style> blocks for max client compatibility."""
@@ -160,13 +243,25 @@ def render_html(
     article_cards = [
         _card_html(
             url=str(a.url),
-            title=clean_anthropic_title(a.title),
-            meta=_anthropic_meta(a),
+            title=_article_title(a),
+            meta=_article_meta(a),
             summary=_summary_to_paragraph(a.summary),
             thumbnail=None,
             cta="Read more →",
         )
         for a in articles
+    ]
+    paper_cards = [
+        _card_html(
+            url=p.url,
+            title=p.title,
+            authors=_paper_authors(p) or None,
+            meta=_paper_meta(p),
+            summary=_summary_to_paragraph(p.summary),
+            thumbnail=None,
+            cta="Read on arXiv →",
+        )
+        for p in papers
     ]
     video_cards = [
         _card_html(
@@ -198,10 +293,12 @@ def render_html(
         f'{now.strftime("%A, %B %d, %Y")}'
         f'</p>'
         f'<p style="color:#94a3b8;font-size:13px;margin:0;">'
-        f'{len(articles) + len(videos)} item(s) from the last {hours}h'
+        f'{len(articles) + len(papers) + len(videos)} item(s) from the last {hours}h'
         f'</p>'
-        f'{section_heading("Anthropic", len(articles))}'
+        f'{section_heading("Articles", len(articles))}'
         f'{section_body(article_cards)}'
+        f'{section_heading("Papers", len(papers))}'
+        f'{section_body(paper_cards)}'
         f'{section_heading("YouTube", len(videos))}'
         f'{section_body(video_cards)}'
         f'<p style="color:#cbd5e1;font-size:11px;margin-top:40px;'
@@ -217,7 +314,8 @@ def render_html(
 def render_text(
     *,
     hours: int,
-    articles: list[AnthropicArticle],
+    articles: list[Article],
+    papers: list[Paper],
     videos: list[YoutubeVideo],
 ) -> str:
     """Plain-text fallback for clients that don't render HTML."""
@@ -233,16 +331,30 @@ def render_text(
         if not rows:
             lines.extend(["  (nothing new)", ""])
             return
-        for headline, url, meta, paragraph in rows:
-            lines.append(headline)
-            lines.append(meta)
+        for row in rows:
+            # 4-tuple: headline/url/meta/paragraph (articles, videos)
+            # 5-tuple: headline/url/authors/meta/paragraph (papers)
+            if len(row) == 5:
+                headline, url, authors, meta, paragraph = row
+                lines.append(headline)
+                if authors:
+                    lines.append(authors)
+                lines.append(meta)
+            else:
+                headline, url, meta, paragraph = row
+                lines.append(headline)
+                lines.append(meta)
             lines.append(paragraph or "(no summary)")
             lines.append(f"→ {url}")
             lines.append("")
 
-    section("Anthropic", [
-        (clean_anthropic_title(a.title), str(a.url), _anthropic_meta(a), _summary_to_paragraph(a.summary))
+    section("Articles", [
+        (_article_title(a), str(a.url), _article_meta(a), _summary_to_paragraph(a.summary))
         for a in articles
+    ])
+    section("Papers", [
+        (p.title, p.url, _paper_authors(p), _paper_meta(p), _summary_to_paragraph(p.summary))
+        for p in papers
     ])
     section("YouTube", [
         (v.title, str(v.url), _youtube_meta(v), _summary_to_paragraph(v.summary))
@@ -257,14 +369,17 @@ def render_text(
 # Build
 # ---------------------------------------------------------------------------
 
-def build_digest(hours: int) -> tuple[list[AnthropicArticle], list[YoutubeVideo]]:
+def build_digest(
+    hours: int,
+) -> tuple[list[Article], list[Paper], list[YoutubeVideo]]:
     with get_db() as db:
-        articles = get_recent_summarized_anthropic_articles(db, hours=hours)
+        articles = get_recent_summarized_articles(db, hours=hours)
+        papers   = get_recent_summarized_papers(db, hours=hours)
         videos   = get_recent_summarized_youtube_videos(db, hours=hours)
         # Detach from session so callers can read attributes after the context exits.
-        for obj in (*articles, *videos):
+        for obj in (*articles, *papers, *videos):
             db.expunge(obj)
-    return articles, videos
+    return articles, papers, videos
 
 
 # ---------------------------------------------------------------------------
@@ -319,16 +434,17 @@ def main() -> None:
                         help="Render to stdout instead of sending.")
     args = parser.parse_args()
 
-    articles, videos = build_digest(hours=args.hours)
-    total = len(articles) + len(videos)
-    print(f"[digest] {len(articles)} article(s), {len(videos)} video(s) in last {args.hours}h.")
+    articles, papers, videos = build_digest(hours=args.hours)
+    total = len(articles) + len(papers) + len(videos)
+    print(f"[digest] {len(articles)} article(s), {len(papers)} paper(s), "
+          f"{len(videos)} video(s) in last {args.hours}h.")
 
     if total == 0:
         print("[digest] Nothing to send. Exiting.")
         return
 
-    html_body = render_html(hours=args.hours, articles=articles, videos=videos)
-    text_body = render_text(hours=args.hours, articles=articles, videos=videos)
+    html_body = render_html(hours=args.hours, articles=articles, papers=papers, videos=videos)
+    text_body = render_text(hours=args.hours, articles=articles, papers=papers, videos=videos)
     subject   = f"AI News Digest — {datetime.now(timezone.utc).strftime('%Y-%m-%d')} ({total} item{'s' if total != 1 else ''})"
 
     if args.dry_run:

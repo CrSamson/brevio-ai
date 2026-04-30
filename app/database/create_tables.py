@@ -17,14 +17,19 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 from sqlalchemy import inspect, text
 
 from app.database.db import engine
-from app.database.models import Base, AnthropicArticle, YoutubeVideo  # noqa: F401
+from app.database.models import (  # noqa: F401
+    Base,
+    Article,
+    Paper,
+    YoutubeVideo,
+)
 
 
 # (table, column, ddl-fragment) — kept here so re-running this script is enough
 # to bring an existing DB in line with the current models.
 _ADDITIVE_COLUMNS: list[tuple[str, str, str]] = [
-    ("anthropic_articles", "summary", "TEXT NOT NULL DEFAULT ''"),
-    ("youtube_videos",     "summary", "TEXT NOT NULL DEFAULT ''"),
+    ("youtube_videos", "summary", "TEXT NOT NULL DEFAULT ''"),
+    ("papers",         "summary", "TEXT"),  # nullable, matches Article.summary
 ]
 
 
