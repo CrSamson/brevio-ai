@@ -1,0 +1,79 @@
+name: Daily Digest
+
+# ---------------------------------------------------------------------------
+# Triggers
+# ---------------------------------------------------------------------------
+# Runs once a day at 12:00 UTC, which lands at:
+#   - 08:00 EDT (~ March -> November in Montreal)
+#   - 07:00 EST (~ November -> March in Montreal)
+# GitHub Actions cron is fixed to UTC and has no DST awareness, so we accept
+# the 1-hour drift in winter rather than running twice and double-emailing.
+# Also exposed as a manual button (`workflow_dispatch`) for ad-hoc fires.
+# ---------------------------------------------------------------------------
+on:
+  schedule:
+    - cron: '0 12 * * *'
+  workflow_dispatch:
+    inputs:
+      hours:
+        description: 'Lookback window in hours'
+        type: number
+        required: false
+        default: 48
+      max_items:
+        description: 'Cap on items in the digest'
+        type: number
+        required: false
+        default: 10
+
+# Avoid stacking two runs if a manual fire collides with the daily cron.
+concurrency:
+  group: daily-digest
+  cancel-in-progress: false
+
+jobs:
+  run:
+    name: scrape -> summarize -> email
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    env:
+      # --- mandatory secrets (set these in the repo's Actions secrets) ---
+      DATABASE_URL:    ${{ secrets.DATABASE_URL }}
+      OPENAI_API_KEY:  ${{ secrets.OPENAI_API_KEY }}
+      SMTP_USER:       ${{ secrets.SMTP_USER }}
+      SMTP_PASSWORD:   ${{ secrets.SMTP_PASSWORD }}
+      DIGEST_TO:       ${{ secrets.DIGEST_TO }}
+      # --- optional secrets with sensible defaults ---
+      SMTP_HOST:       ${{ secrets.SMTP_HOST || 'smtp.gmail.com' }}
+      SMTP_PORT:       ${{ secrets.SMTP_PORT || '587' }}
+      DIGEST_FROM:     ${{ secrets.DIGEST_FROM || secrets.SMTP_USER }}
+      PYTHONUNBUFFERED: '1'
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+          cache-dependency-path: requirements.txt
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Initialize / sync schema on Neon (idempotent)
+        run: python -m app.database.create_tables
+
+      - name: Run pipeline (scrape, summarize, email)
+        run: |
+          python -m agent.scheduler --once \
+            --hours "${HOURS:-48}" \
+            --max-items "${MAX_ITEMS:-10}"
+        env:
+          HOURS:     ${{ github.event.inputs.hours    }}
+          MAX_ITEMS: ${{ github.event.inputs.max_items }}
