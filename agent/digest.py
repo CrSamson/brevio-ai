@@ -382,6 +382,121 @@ def build_digest(
     return articles, papers, videos
 
 
+# Default per-section quota for cap_balanced(). Articles + papers + videos.
+# Must sum to 1.0; the videos slot absorbs rounding remainder so the total
+# always equals max_items exactly. For max_items=10 this gives 4/4/2.
+DIGEST_QUOTAS: tuple[float, float, float] = (0.4, 0.4, 0.2)
+
+# Within a single section, no one source/channel may contribute more than
+# this many items. Source diversity guard - prevents a high-volume publisher
+# (e.g. TechCrunch) from dominating the articles section.
+DIGEST_MAX_PER_SOURCE: int = 2
+
+
+def _pick_diverse(
+    items: list,
+    quota: int,
+    source_attr: str,
+    max_per_source: int,
+    counts: dict,
+) -> tuple[list, list]:
+    """Take up to `quota` items by date desc, capping per-source occurrences.
+
+    `counts` is mutated in-place so the caller can pass it back into a second
+    pass (overflow refill) and keep diversity enforced across both phases.
+
+    Returns (picks, leftover). `leftover` contains everything not picked,
+    in original order.
+    """
+    picks: list = []
+    leftover: list = []
+    for item in items:
+        if len(picks) >= quota:
+            leftover.append(item)
+            continue
+        src = getattr(item, source_attr, None)
+        if counts.get(src, 0) >= max_per_source:
+            leftover.append(item)
+            continue
+        picks.append(item)
+        counts[src] = counts.get(src, 0) + 1
+    return picks, leftover
+
+
+def cap_balanced(
+    articles: list[Article],
+    papers: list[Paper],
+    videos: list[YoutubeVideo],
+    max_items: int,
+) -> tuple[list[Article], list[Paper], list[YoutubeVideo]]:
+    """
+    Trim the three lists to a balanced max_items items across kinds, with
+    per-source diversity inside each section.
+
+    Phase 1 — section quotas with diversity:
+        Each section gets a quota (proportional to DIGEST_QUOTAS).
+        For articles + videos, the per-section pick respects
+        DIGEST_MAX_PER_SOURCE so one publisher can't claim the whole section.
+        Papers don't need source diversity (every row is a distinct paper).
+
+    Phase 2 — leftover refill (still diversity-aware):
+        Any unused slots (a section couldn't fill its quota, or its quota
+        was diversity-capped) refill from the other sections' leftover
+        items by published_at desc - while still respecting the same
+        per-source caps.
+
+    If the combined total already fits within the cap, the inputs are
+    returned unchanged.
+    """
+    total_in = len(articles) + len(papers) + len(videos)
+    if max_items is None or max_items <= 0 or total_in <= max_items:
+        return articles, papers, videos
+
+    a_pct, p_pct, _ = DIGEST_QUOTAS
+    a_quota = round(max_items * a_pct)
+    p_quota = round(max_items * p_pct)
+    v_quota = max_items - a_quota - p_quota
+
+    a_counts: dict = {}
+    v_counts: dict = {}
+
+    a_picks, a_left = _pick_diverse(articles, a_quota, "source",
+                                    DIGEST_MAX_PER_SOURCE, a_counts)
+    p_picks         = list(papers[:p_quota])
+    p_left          = list(papers[p_quota:])
+    v_picks, v_left = _pick_diverse(videos, v_quota, "channel_handle",
+                                    DIGEST_MAX_PER_SOURCE, v_counts)
+
+    spare = max_items - (len(a_picks) + len(p_picks) + len(v_picks))
+    if spare > 0:
+        EARLIEST = datetime.min.replace(tzinfo=timezone.utc)
+        pool: list[tuple[str, object, datetime]] = []
+        pool += [("a", x, x.published_at or EARLIEST) for x in a_left]
+        pool += [("p", x, x.published_at or EARLIEST) for x in p_left]
+        pool += [("v", x, x.published_at or EARLIEST) for x in v_left]
+        pool.sort(key=lambda t: t[2], reverse=True)
+
+        for kind, item, _date in pool:
+            if len(a_picks) + len(p_picks) + len(v_picks) >= max_items:
+                break
+            if kind == "a":
+                src = getattr(item, "source", None)
+                if a_counts.get(src, 0) >= DIGEST_MAX_PER_SOURCE:
+                    continue
+                a_counts[src] = a_counts.get(src, 0) + 1
+                a_picks.append(item)   # type: ignore[arg-type]
+            elif kind == "p":
+                p_picks.append(item)   # type: ignore[arg-type]
+            else:  # video
+                src = getattr(item, "channel_handle", None)
+                if v_counts.get(src, 0) >= DIGEST_MAX_PER_SOURCE:
+                    continue
+                v_counts[src] = v_counts.get(src, 0) + 1
+                v_picks.append(item)   # type: ignore[arg-type]
+
+    return a_picks, p_picks, v_picks
+
+
 # ---------------------------------------------------------------------------
 # Send
 # ---------------------------------------------------------------------------
@@ -432,10 +547,26 @@ def main() -> None:
                         help="Override DIGEST_TO recipient (comma-separated for multiple).")
     parser.add_argument("--dry-run", action="store_true",
                         help="Render to stdout instead of sending.")
+    parser.add_argument("--max-items", type=int, default=None,
+                        help="Cap total items in the digest. Each section gets a "
+                             "proportional quota (DIGEST_QUOTAS, currently 40%% "
+                             "articles / 40%% papers / 20%% videos), and within "
+                             "articles/videos no one source may contribute more "
+                             "than DIGEST_MAX_PER_SOURCE items (default 2). "
+                             "Unused slots refill from leftover by recency, "
+                             "still respecting per-source caps. "
+                             "Default: no cap.")
     args = parser.parse_args()
 
     articles, papers, videos = build_digest(hours=args.hours)
+    pre_total = len(articles) + len(papers) + len(videos)
+    if args.max_items:
+        articles, papers, videos = cap_balanced(
+            articles, papers, videos, max_items=args.max_items,
+        )
     total = len(articles) + len(papers) + len(videos)
+    if args.max_items and total < pre_total:
+        print(f"[digest] capped from {pre_total} to {total} items (--max-items={args.max_items}).")
     print(f"[digest] {len(articles)} article(s), {len(papers)} paper(s), "
           f"{len(videos)} video(s) in last {args.hours}h.")
 

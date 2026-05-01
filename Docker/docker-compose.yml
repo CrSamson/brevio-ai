@@ -1,7 +1,31 @@
 services:
+  # The app container runs the daily pipeline against the database
+  # configured by DATABASE_URL in ../.env (currently Neon).
+  # Profile-gated: invoked manually via
+  #   docker compose --profile pipeline run --rm app
+  # not via `docker compose up -d`.
+  app:
+    build:
+      context: ..
+      dockerfile: Docker/Dockerfile
+    image: brevio-ai:latest
+    container_name: ai_news_app
+    profiles: ["pipeline"]
+    # Loads DATABASE_URL, OPENAI_API_KEY, SMTP_*, DIGEST_* etc. into the
+    # container. The container talks to whatever DATABASE_URL points at -
+    # currently Neon over SSL.
+    env_file:
+      - ../.env
+
+  # Local Postgres: kept here for emergency rollback / offline dev. Does NOT
+  # auto-start anymore. Spin up explicitly with:
+  #   docker compose --profile local-dev up -d postgres
+  # The postgres_data volume is preserved so the pre-migration data is still
+  # recoverable if you ever need to point DATABASE_URL_LOCAL_BACKUP back.
   postgres:
     image: postgres:16-alpine
     container_name: ai_news_postgres
+    profiles: ["local-dev"]
     restart: unless-stopped
     environment:
       POSTGRES_USER:     ${POSTGRES_USER}

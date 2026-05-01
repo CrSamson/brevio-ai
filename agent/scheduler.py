@@ -34,7 +34,7 @@ from apscheduler.schedulers.blocking import BlockingScheduler
 from apscheduler.triggers.cron import CronTrigger
 from dotenv import load_dotenv
 
-from agent.digest import build_digest, render_html, render_text, send_email
+from agent.digest import build_digest, cap_balanced, render_html, render_text, send_email
 from agent.summarizer import Summarizer
 from app.database.crud import (
     get_unsummarized_articles,
@@ -99,10 +99,19 @@ def _summarize() -> None:
                 log.warning("    video id=%s failed: %s", v.id, e)
 
 
-def _email_digest(hours: int) -> None:
-    log.info("step 3/3 — building + sending digest (window=%dh)", hours)
+def _email_digest(hours: int, max_items: int | None = None) -> None:
+    log.info("step 3/3 — building + sending digest (window=%dh, max_items=%s)",
+             hours, max_items)
     articles, papers, videos = build_digest(hours=hours)
+    pre_total = len(articles) + len(papers) + len(videos)
+    if max_items:
+        articles, papers, videos = cap_balanced(
+            articles, papers, videos, max_items=max_items,
+        )
     total = len(articles) + len(papers) + len(videos)
+    if max_items and total < pre_total:
+        log.info("  capped from %d to %d items (max_items=%d)",
+                 pre_total, total, max_items)
     if total == 0:
         log.info("  nothing to send for the last %dh", hours)
         return
@@ -131,7 +140,12 @@ def _email_digest(hours: int) -> None:
     log.info("  sent to %s", ", ".join(recipients))
 
 
-def run_pipeline(*, hours: int, send_email_step: bool = True) -> None:
+def run_pipeline(
+    *,
+    hours: int,
+    send_email_step: bool = True,
+    max_items: int | None = None,
+) -> None:
     """Full daily pipeline. Each step is wrapped so a failure doesn't abort the rest."""
     log.info("=" * 60)
     log.info("pipeline start")
@@ -140,7 +154,11 @@ def run_pipeline(*, hours: int, send_email_step: bool = True) -> None:
     for label, fn in (
         ("scrape",    lambda: _scrape(hours)),
         ("summarize", _summarize),
-        ("digest",    lambda: _email_digest(hours) if send_email_step else log.info("step 3/3 — skipped (--skip-email)")),
+        ("digest",    (
+            (lambda: _email_digest(hours, max_items=max_items))
+            if send_email_step
+            else (lambda: log.info("step 3/3 — skipped (--skip-email)"))
+        )),
     ):
         try:
             fn()
@@ -156,7 +174,12 @@ def run_pipeline(*, hours: int, send_email_step: bool = True) -> None:
 # Scheduler
 # ---------------------------------------------------------------------------
 
-def _start_scheduler(*, hours: int, send_email_step: bool) -> None:
+def _start_scheduler(
+    *,
+    hours: int,
+    send_email_step: bool,
+    max_items: int | None,
+) -> None:
     sched_hour   = int(os.environ.get("SCHEDULE_HOUR", "7"))
     sched_minute = int(os.environ.get("SCHEDULE_MINUTE", "0"))
 
@@ -164,7 +187,11 @@ def _start_scheduler(*, hours: int, send_email_step: bool) -> None:
     scheduler.add_job(
         run_pipeline,
         trigger=CronTrigger(hour=sched_hour, minute=sched_minute),
-        kwargs={"hours": hours, "send_email_step": send_email_step},
+        kwargs={
+            "hours":           hours,
+            "send_email_step": send_email_step,
+            "max_items":       max_items,
+        },
         id="daily_digest",
         max_instances=1,
         coalesce=True,         # if missed (e.g. machine asleep), run once on resume — not N times
@@ -172,8 +199,8 @@ def _start_scheduler(*, hours: int, send_email_step: bool) -> None:
     )
 
     log.info(
-        "scheduler armed: daily at %02d:%02d (local time, lookback=%dh, email=%s)",
-        sched_hour, sched_minute, hours, "on" if send_email_step else "off",
+        "scheduler armed: daily at %02d:%02d (local time, lookback=%dh, email=%s, max_items=%s)",
+        sched_hour, sched_minute, hours, "on" if send_email_step else "off", max_items,
     )
     log.info("Ctrl+C to stop.")
     try:
@@ -196,19 +223,28 @@ def main() -> None:
                         help="Run scrape + summarize but do not send the digest.")
     parser.add_argument("--hours", type=int, default=None,
                         help="Override SCHEDULE_HOURS_LOOKBACK (default: env or 24).")
+    parser.add_argument("--max-items", type=int, default=None,
+                        help="Cap total items in the digest with a balanced "
+                             "per-section quota (40%% articles / 40%% papers / "
+                             "20%% videos) and per-source diversity (max 2 "
+                             "items per source/channel within a section). "
+                             "Default: env DIGEST_MAX_ITEMS, or unlimited.")
     args = parser.parse_args()
 
     hours = args.hours or int(os.environ.get("SCHEDULE_HOURS_LOOKBACK", "24"))
     send_email_step = not args.skip_email
+    max_items = args.max_items
+    if max_items is None and os.environ.get("DIGEST_MAX_ITEMS"):
+        max_items = int(os.environ["DIGEST_MAX_ITEMS"])
 
     if args.once:
-        run_pipeline(hours=hours, send_email_step=send_email_step)
+        run_pipeline(hours=hours, send_email_step=send_email_step, max_items=max_items)
         return
 
     if args.run_now:
-        run_pipeline(hours=hours, send_email_step=send_email_step)
+        run_pipeline(hours=hours, send_email_step=send_email_step, max_items=max_items)
 
-    _start_scheduler(hours=hours, send_email_step=send_email_step)
+    _start_scheduler(hours=hours, send_email_step=send_email_step, max_items=max_items)
 
 
 if __name__ == "__main__":
