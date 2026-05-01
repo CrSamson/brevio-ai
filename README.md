@@ -1,10 +1,10 @@
 # AI News Aggregator
 
-> Pulls fresh AI news from **10 RSS blog sources**, **arXiv (cs.LG + cs.AI)**, **HuggingFace Daily Papers**, and **4 YouTube channels**. Stores everything in **Neon Postgres**, summarises each item with an LLM (kind-specific prompts), and emails a daily HTML digest with three sections: Articles, Papers, YouTube. Runs in a **Docker container** triggered by **Windows Task Scheduler** at 08:00 every morning.
+> Pulls fresh AI news from **10 RSS blog sources**, **arXiv (cs.LG + cs.AI)**, **HuggingFace Daily Papers**, and **4 YouTube channels**. Stores everything in **Neon Postgres**, summarises each item with an LLM (kind-specific prompts), and emails a daily HTML digest with three sections: Articles, Papers, YouTube. Runs on **GitHub Actions** at 08:00 Montreal time, every day.
 
 ## 🎯 Objective
 
-Keep up with AI without ad-hoc tab-checking. Every morning at 08:00 Montreal time, a Docker container fires up, scrapes a configurable list of trusted sources for the last *N* hours, summarises new rows with GPT-4o, and ships a single HTML email so the reader can decide in seconds what to click.
+Keep up with AI without ad-hoc tab-checking. Every morning a GitHub Actions runner fires up, scrapes a configurable list of trusted sources for the last *N* hours, summarises new rows with GPT-4o, and ships a single HTML email so the reader can decide in seconds what to click.
 
 The summariser uses **two system prompts** depending on source kind:
 - **Articles + video transcripts** → busy-practitioner blurb, 2–4 sentences, specifics over generalities.
@@ -18,14 +18,13 @@ Adding a new RSS blog source is a JSON edit, no scraper to write.
 
 ## 🏗️ Architecture
 
-*Once a day, Windows Task Scheduler launches a `brevio-ai` Docker container that runs three steps in sequence: scrape → summarize → email. All state lives in Neon. The container is one-shot — it exits when the pipeline is done; the OS scheduler fires it again the next morning.*
+*Once a day, a GitHub Actions cron job spins up a runner that runs three steps in sequence: scrape → summarize → email. All state lives in Neon. The runner exits when the pipeline is done; nothing stays running between fires.*
 
 ```mermaid
 flowchart LR
-    Cron[Windows Task Scheduler<br/>08:00 daily] --> App[brevio-ai container<br/>Docker, runs once]
-    Cfg[sources.json<br/>channels.json] -.config.-> App
+    Cron[GitHub Actions cron<br/>0 12 * * * UTC] --> Scrape[Step 1: Scrape<br/>10 blogs · arXiv · HF Daily · YouTube]
+    Cfg[sources.json<br/>channels.json] -.config.-> Scrape
 
-    App --> Scrape[Step 1: Scrape<br/>10 blogs · arXiv · HF Daily · YouTube]
     Scrape --> DB[(Neon Postgres<br/>articles · papers · youtube_videos)]
     DB --> Sum[Step 2: Summarize<br/>GPT-4o, dual prompts]
     Sum --> DB
@@ -35,7 +34,7 @@ flowchart LR
 
 ## 🛠️ Tech Stack
 
-- **Language**: Python 3.10+ (pinned to 3.12 in the Docker image)
+- **Language**: Python 3.12
 - **RSS / Atom parsing**: `feedparser`
 - **HTTP**: `requests`
 - **Article content extraction (optional, per-source)**: [Docling](https://github.com/docling-project/docling) — URL → markdown
@@ -50,8 +49,7 @@ flowchart LR
 - **arXiv**: Atom API (`export.arxiv.org/api/query`), with a process-global ≥ 3 s rate limiter; **PDFs are never downloaded**, only `pdf_url` strings
 - **LLM summarisation**: OpenAI `gpt-4o`, kind-specific system prompts
 - **Email delivery**: stdlib `smtplib` + `EmailMessage` (multipart text + inline-styled HTML)
-- **Containerization**: multi-stage `Dockerfile` (`python:3.12-slim`), runs as non-root user
-- **Daily trigger**: **Windows Task Scheduler** in production. APScheduler ships in [agent/scheduler.py](agent/scheduler.py) for in-process scheduling if you'd rather have a long-running Python process
+- **Daily trigger**: **GitHub Actions cron** (`.github/workflows/digest.yml`). Secrets in repo Actions secrets. APScheduler also ships in [agent/scheduler.py](agent/scheduler.py) for in-process scheduling if you'd rather have a long-running Python process
 
 ## 📊 What it does today
 
@@ -103,7 +101,7 @@ brevio-ai/
 ├── agent/
 │   ├── summarizer.py                # OpenAI gpt-4o, dual prompts (article / paper)
 │   ├── digest.py                    # 3-section HTML + plain-text email + cap_balanced
-│   └── scheduler.py                 # APScheduler driver (alt to Task Scheduler)
+│   └── scheduler.py                 # Pipeline driver (--once for cron, BlockingScheduler for in-process)
 ├── app/database/
 │   ├── db.py                        # Engine + session factory (reads DATABASE_URL)
 │   ├── models.py                    # SQLAlchemy: Article, Paper, YoutubeVideo
@@ -123,26 +121,22 @@ brevio-ai/
 │   ├── migrate_to_neon.py           # one-shot local-Postgres → Neon migration
 │   ├── phase4_check.py              # arXiv live + idempotency
 │   ├── phase5_check.py              # HF Daily live + cross-link
-│   └── phase6_check.py              # E2E backtest with --truncate flag
-├── Docker/
-│   ├── Dockerfile                   # multi-stage, slim runtime, non-root user
-│   ├── docker-compose.yml           # `app` (pipeline) + `postgres` (local-dev) profiles
-│   └── run_pipeline.ps1             # Task Scheduler entry point (Windows)
-├── .dockerignore
+│   └── phase6_check.py              # E2E backtest
+├── .github/
+│   └── workflows/
+│       └── digest.yml               # daily cron + manual trigger
 └── requirements.txt
 ```
 
 ## 🚀 How to Run
 
-### Configure environment
+### Configure environment (local development)
 
 Create `.env` at the project root:
 
 ```dotenv
-# Database (Neon Postgres in production)
+# Database (Neon)
 DATABASE_URL=postgresql+psycopg2://user:pass@ep-xxx.aws.neon.tech/db?sslmode=require&channel_binding=require
-# Optional rollback handle:
-DATABASE_URL_LOCAL_BACKUP=postgresql+psycopg2://user:pass@localhost:5433/db
 
 # LLM
 OPENAI_API_KEY=sk-...
@@ -156,7 +150,7 @@ DIGEST_FROM=you@gmail.com
 DIGEST_TO=you@gmail.com
 ```
 
-If you ever spin up the local-dev Postgres (`docker compose --profile local-dev up -d postgres`), `.env` also needs `POSTGRES_USER`, `POSTGRES_PASSWORD`, `POSTGRES_DB` for compose substitution.
+For production, the same values live in **GitHub Actions Secrets** (see Deployment).
 
 ### Initialise schema
 
@@ -179,18 +173,6 @@ python -m agent.digest --hours 48 --max-items 10 --dry-run
 # Cheaper iteration loops while tweaking the paper prompt
 python -m agent.summarizer --papers --limit 3 --force
 ```
-
-### One-shot via Docker (matches production)
-
-```powershell
-# Build the image once
-docker compose -f Docker/docker-compose.yml --env-file .env --profile pipeline build app
-
-# Run the daily pipeline once
-pwsh -File Docker/run_pipeline.ps1
-```
-
-`Docker/run_pipeline.ps1` logs to `logs/pipeline_YYYY-MM-DD.log`.
 
 ### Add or edit a source
 
@@ -225,47 +207,62 @@ The fixtures under [tests/fixtures/](tests/fixtures/) are real saved RSS / Atom 
 
 For runtime/DB checks, [tools/phase6_check.py](tools/phase6_check.py) runs the full Runner with `hours=72`, asserts per-source minimums, and verifies idempotency on a second run.
 
-## 🐳 Deployment
+## 🚀 Deployment (GitHub Actions)
 
-### Containerization
+The daily cron lives in [.github/workflows/digest.yml](.github/workflows/digest.yml). The runner installs Python 3.12, the deps from `requirements.txt`, runs `create_tables` (idempotent), and then `python -m agent.scheduler --once --hours 48 --max-items 10`.
 
-[Docker/Dockerfile](Docker/Dockerfile) is multi-stage:
-- **Builder** stage: installs all Python deps with `build-essential` + `libpq-dev` so wheels compile cleanly.
-- **Runtime** stage: `python:3.12-slim` + `libpq5 libgl1 libglib2.0-0` (Docling needs them via opencv). Non-root user `app`.
+### Schedule
 
-Image size: ~3.2 GB compressed. Most of that is Docling + transitives (opencv, pypdfium2, accelerate). Stays installed for portability even when `fetch_content=false`.
+```yaml
+on:
+  schedule:
+    - cron: '0 12 * * *'   # 12:00 UTC daily
+  workflow_dispatch:
+    inputs: { hours, max_items }
+```
 
-### Windows Task Scheduler — daily at 08:00
+12:00 UTC lands at **08:00 EDT** (March → November, Montreal in daylight time) and **07:00 EST** (November → March). GitHub Actions cron is fixed to UTC and has no DST awareness, so the 1-hour winter drift is the lesser evil compared to running twice and double-emailing.
 
-The cron lives in Windows Task Scheduler, not in a long-running Python process. [Docker/run_pipeline.ps1](Docker/run_pipeline.ps1) is the entry point.
+### Secrets
 
-Setup:
+Repo → **Settings → Secrets and variables → Actions** → New repository secret. **Five mandatory:**
 
-1. Docker Desktop → Settings → General → check **"Start Docker Desktop when you sign in"**.
-2. Task Scheduler → **Create Task**:
-   - General: name `Brevio AI Daily Digest`, "Run only when user is logged on".
-   - Triggers → Daily → 08:00 local time.
-   - Actions → "Start a program": `pwsh.exe`, args `-NoProfile -ExecutionPolicy Bypass -File "<project>\Docker\run_pipeline.ps1"`, start in `<project root>`.
-   - Settings → "Stop the task if it runs longer than: 1 hour".
-3. Right-click the task → Run → confirm `logs/pipeline_<today>.log` populates and email arrives.
+| Name | Value |
+|---|---|
+| `DATABASE_URL` | Your Neon URL — `postgresql+psycopg2://...neon.tech/...?sslmode=require&channel_binding=require` |
+| `OPENAI_API_KEY` | Your `sk-proj-...` key |
+| `SMTP_USER` | Sender Gmail address |
+| `SMTP_PASSWORD` | Gmail App Password (16-char, no spaces in the secret) |
+| `DIGEST_TO` | Recipient |
 
-### Migrating local Postgres → Neon
+Three optional with defaults baked into the workflow (`smtp.gmail.com`, `587`, fallback to `SMTP_USER`):
 
-[tools/migrate_to_neon.py](tools/migrate_to_neon.py) is a one-shot SQLAlchemy-based migration. Reads `DATABASE_URL` (local) and `DATABASE_URL_NEON` (target) from `.env`, creates schema on Neon, copies every row of `articles`/`papers`/`youtube_videos`, and prints a side-by-side row-count audit. Idempotent — skips tables that already have data on Neon.
+| Name | Default if absent |
+|---|---|
+| `SMTP_HOST` | `smtp.gmail.com` |
+| `SMTP_PORT` | `587` |
+| `DIGEST_FROM` | `${{ secrets.SMTP_USER }}` |
 
-### Free-tier capacity (Neon)
+### Manual run / smoke test
 
-- **Storage**: 500 MB free. Current usage ~1 MB. Daily growth ~250 KB → ~5 years before the cap.
-- **Compute**: 191.9 hours/month free. Daily 5-minute run uses ~2.5 hrs/month — 1.3% of the limit.
-- If you flip `fetch_content: true` for blog sources, daily growth jumps to ~1 MB and you'd hit the cap in ~12–18 months. That's the main lever.
+GitHub repo → **Actions** tab → **Daily Digest** workflow → **Run workflow** button → optional `hours` and `max_items` form fields → **Run**. ~5–7 minutes later, the email arrives. Each step's stdout is preserved in the run log for 90 days.
+
+### Free-tier capacity
+
+| Resource | Free quota | Current usage | Headroom |
+|---|---|---|---|
+| **Neon storage** | 500 MB | ~1 MB | ~5 years at current ingestion rate |
+| **Neon compute hours** | 191.9 hr/month | ~2.5 hr/month | 1.3% of cap |
+| **GitHub Actions runner-min** (private repos) | 2,000 min/month | ~150 min/month | 7.5% of cap |
+| **OpenAI tokens** | n/a (pay-as-you-go) | ~$0.15–0.25/day | ~$5–8/month |
+
+If you flip `fetch_content: true` for blog sources, daily growth jumps to ~1 MB and you'd hit Neon's storage cap in ~12–18 months. That's the main lever.
 
 ## 📝 Limitations
 
 What this **isn't**, by design and by current state:
 
 **Single-tenant.** One global `DIGEST_TO`, one global source list. No user table, no auth, no per-user preferences. To change channels: edit [config/channels.json](config/channels.json) or [config/sources.json](config/sources.json).
-
-**Daily run requires the laptop to be on at 08:00.** Windows Task Scheduler fires only when the machine is awake (and Docker Desktop is running). If you travel, the digest pauses until you're back. Migrating to **GitHub Actions** is a one-shot follow-up — same Dockerfile drops in unchanged, only `DATABASE_URL` becomes a GH secret.
 
 **No retry/backoff on OpenAI rate limits.** A failed summary row is logged and stays unsummarised; the next pipeline run picks it up. No exponential backoff inside a single run.
 
@@ -276,6 +273,8 @@ What this **isn't**, by design and by current state:
 **`hf_daily` runs against the GitHub mirror as primary** so `hf_upvotes` (and `authors`) populate routinely. Trade-off: 22 entries/day vs takara.ai's 50. The takara.ai feed is wired as the fallback.
 
 **`cmu_ml` and `bair` regularly publish less than once per week.** Don't treat zero-fetched runs from those sources as failures.
+
+**DST drift.** GitHub Actions cron is UTC-only. The daily fire is 08:00 in summer, 07:00 in winter. Acceptable for a personal digest; not acceptable if you ever need precise Montreal-local timing.
 
 Other gotchas:
 - **YouTube transcript scraping is fragile.** `youtube-transcript-api` can be rate-limited or blocked; `RequestBlocked` is caught and logged but the video is stored with an empty transcript.
