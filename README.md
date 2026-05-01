@@ -65,9 +65,11 @@ flowchart LR
 
 ### Tables (on Neon)
 
-- **`articles`** — every blog/news post. Conflict key: `url`. Per-row: `source` (e.g. `anthropic_news`, `openai_news`), `title`, `published_at`, `summary` (LLM, busy-practitioner tone), `content_md` (Docling, optional), `raw_metadata` (JSONB).
-- **`papers`** — arXiv + HF Daily entries, cross-linked. Conflict key: `arxiv_id` (partial unique). Per-row: `sources TEXT[]` (e.g. `{arxiv,hf_daily}`), `title`, `authors` (JSONB), `abstract`, `categories` (JSONB), `pdf_url`, `hf_upvotes`, `summary` (LLM, plain-English explainer for a general audience).
-- **`youtube_videos`** — YouTube video metadata + transcript + LLM `summary`. Conflict key: `video_id`.
+All three tables carry `digest_sent_at TIMESTAMPTZ NULL` — the timestamp at which the row was first included in a sent digest, or `NULL` if it has never shipped. Used by the digest's no-duplicate filter (see *Digest selection* below).
+
+- **`articles`** — every blog/news post. Conflict key: `url`. Per-row: `source` (e.g. `anthropic_news`, `openai_news`), `title`, `published_at`, `summary` (LLM, busy-practitioner tone), `content_md` (Docling, optional), `raw_metadata` (JSONB), `digest_sent_at`.
+- **`papers`** — arXiv + HF Daily entries, cross-linked. Conflict key: `arxiv_id` (partial unique). Per-row: `sources TEXT[]` (e.g. `{arxiv,hf_daily}`), `title`, `authors` (JSONB), `abstract`, `categories` (JSONB), `pdf_url`, `hf_upvotes`, `summary` (LLM, plain-English explainer for a general audience), `digest_sent_at`.
+- **`youtube_videos`** — YouTube video metadata + transcript + LLM `summary`. Conflict key: `video_id`. Plus `digest_sent_at`.
 
 ### Digest selection
 
@@ -76,6 +78,7 @@ flowchart LR
 - **Quotas**: `DIGEST_QUOTAS = (0.4, 0.4, 0.2)` → 4 articles + 4 papers + 2 videos at cap=10.
 - **Per-source diversity**: `DIGEST_MAX_PER_SOURCE = 2` → no single publisher (e.g. TechCrunch) can dominate the articles section.
 - **Overflow refill**: empty quota slots refill from the other sections by recency, still respecting per-source caps. So a quiet YouTube day shifts those 2 slots to articles or papers, never wasted.
+- **No duplicate sends**: `get_recent_summarized_*` filters `WHERE digest_sent_at IS NULL`, so a row that has shipped in a previous email is never picked again. After `send_email()` returns, every included row is stamped with `digest_sent_at = NOW()` (see `mark_digest_sent` in [app/database/crud.py](app/database/crud.py)). The mark step runs **after** the SMTP call — an SMTP failure leaves the rows unsent and they get retried on the next cron. `--dry-run` skips the mark entirely. Re-scrapes never reset send state because all upserts omit `digest_sent_at` from their `SET` clauses.
 
 ### Resilience
 
@@ -119,6 +122,7 @@ brevio-ai/
 ├── tools/
 │   ├── verify_feeds.py              # pre-flight feed verifier
 │   ├── migrate_to_neon.py           # one-shot local-Postgres → Neon migration
+│   ├── backfill_digest_sent.py      # one-shot: stamp existing rows as already-sent
 │   ├── phase4_check.py              # arXiv live + idempotency
 │   ├── phase5_check.py              # HF Daily live + cross-link
 │   └── phase6_check.py              # E2E backtest
