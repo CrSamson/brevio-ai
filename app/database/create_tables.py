@@ -28,8 +28,13 @@ from app.database.models import (  # noqa: F401
 # (table, column, ddl-fragment) — kept here so re-running this script is enough
 # to bring an existing DB in line with the current models.
 _ADDITIVE_COLUMNS: list[tuple[str, str, str]] = [
-    ("youtube_videos", "summary", "TEXT NOT NULL DEFAULT ''"),
-    ("papers",         "summary", "TEXT"),  # nullable, matches Article.summary
+    ("youtube_videos", "summary",        "TEXT NOT NULL DEFAULT ''"),
+    ("papers",         "summary",        "TEXT"),  # nullable, matches Article.summary
+    # Digest send-state. NULL = not yet emailed; set to NOW() once a digest
+    # containing the row is successfully sent. See agent/digest.py.
+    ("articles",       "digest_sent_at", "TIMESTAMPTZ"),
+    ("papers",         "digest_sent_at", "TIMESTAMPTZ"),
+    ("youtube_videos", "digest_sent_at", "TIMESTAMPTZ"),
 ]
 
 

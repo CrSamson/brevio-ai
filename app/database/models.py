@@ -50,6 +50,11 @@ class YoutubeVideo(Base):
     transcript     = Column(Text,         nullable=False, default="")
     summary        = Column(Text,         nullable=False, default="")   # LLM-generated per-row summary
 
+    # NULL = not yet included in a sent digest. Set to NOW() once an email
+    # containing this row goes out successfully. Filtered by the digest queries
+    # so the same row never ships in two emails.
+    digest_sent_at = Column(DateTime(timezone=True), nullable=True)
+
     # --- housekeeping ---
     created_at     = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
 
@@ -80,6 +85,9 @@ class Article(Base):
     content_md      = Column(Text,        nullable=True)                 # Docling output
     content_fetched = Column(Boolean,     nullable=False,
                              default=False, server_default=text("false"))
+
+    # NULL = not yet included in a sent digest. See YoutubeVideo.digest_sent_at.
+    digest_sent_at  = Column(DateTime(timezone=True), nullable=True)
 
     # Original feedparser entry, kept verbatim so we don't lose anything.
     raw_metadata    = Column(JSONB,       nullable=False,
@@ -127,6 +135,9 @@ class Paper(Base):
     hf_upvotes        = Column(Integer,     nullable=True)
 
     summary           = Column(Text,        nullable=True)              # LLM-generated, set later
+
+    # NULL = not yet included in a sent digest. See YoutubeVideo.digest_sent_at.
+    digest_sent_at    = Column(DateTime(timezone=True), nullable=True)
 
     raw_metadata      = Column(JSONB,       nullable=False,
                                default=dict, server_default=text("'{}'::jsonb"))

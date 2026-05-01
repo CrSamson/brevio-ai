@@ -23,6 +23,7 @@ from .crud import (
     get_unsummarized_youtube_videos,
     set_youtube_summary,
     get_recent_summarized_youtube_videos,
+    mark_digest_sent,
 )
 
 __all__ = [
@@ -50,4 +51,5 @@ __all__ = [
     "get_unsummarized_youtube_videos",
     "set_youtube_summary",
     "get_recent_summarized_youtube_videos",
+    "mark_digest_sent",
 ]

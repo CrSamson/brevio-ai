@@ -40,11 +40,13 @@ from app.database.crud import (
     get_unsummarized_articles,
     get_unsummarized_papers,
     get_unsummarized_youtube_videos,
+    mark_digest_sent,
     set_article_summary,
     set_paper_summary,
     set_youtube_summary,
 )
 from app.database.db import get_db
+from app.database.models import Article, Paper, YoutubeVideo
 from runner import Runner
 
 
@@ -138,6 +140,17 @@ def _email_digest(hours: int, max_items: int | None = None) -> None:
         recipients=recipients,
     )
     log.info("  sent to %s", ", ".join(recipients))
+
+    # Mark every row that was actually emailed so it never ships twice. We
+    # mark AFTER the send so an SMTP failure leaves rows unsent for retry.
+    try:
+        with get_db() as db:
+            n_a = mark_digest_sent(db, Article,      [a.id for a in articles])
+            n_p = mark_digest_sent(db, Paper,        [p.id for p in papers])
+            n_v = mark_digest_sent(db, YoutubeVideo, [v.id for v in videos])
+        log.info("  marked sent: %d article(s), %d paper(s), %d video(s)", n_a, n_p, n_v)
+    except Exception as e:  # noqa: BLE001 - mark failure is recoverable
+        log.warning("  send succeeded but mark_digest_sent failed: %s", e)
 
 
 def run_pipeline(

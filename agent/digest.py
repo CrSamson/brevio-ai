@@ -40,6 +40,7 @@ from app.database.crud import (
     get_recent_summarized_articles,
     get_recent_summarized_papers,
     get_recent_summarized_youtube_videos,
+    mark_digest_sent,
 )
 from app.database.db import get_db
 from app.database.models import Article, Paper, YoutubeVideo
@@ -605,6 +606,27 @@ def main() -> None:
         recipients=recipients,
     )
     print(f"[digest] Sent to {', '.join(recipients)}.")
+
+    # Mark every row that was actually included so the same content never
+    # appears in a future digest. We mark AFTER the send so a SMTP failure
+    # leaves the rows unsent and they get a second chance on the next run.
+    _mark_sent(articles, papers, videos)
+
+
+def _mark_sent(
+    articles: list[Article],
+    papers:   list[Paper],
+    videos:   list[YoutubeVideo],
+) -> None:
+    """Stamp digest_sent_at = NOW() on every row that just shipped."""
+    try:
+        with get_db() as db:
+            n_a = mark_digest_sent(db, Article,      [a.id for a in articles])
+            n_p = mark_digest_sent(db, Paper,        [p.id for p in papers])
+            n_v = mark_digest_sent(db, YoutubeVideo, [v.id for v in videos])
+        print(f"[digest] Marked {n_a} article(s), {n_p} paper(s), {n_v} video(s) as sent.")
+    except Exception as e:  # noqa: BLE001 - mark failure is recoverable; double-email better than silent loss
+        print(f"[digest] WARNING: send succeeded but mark_digest_sent failed: {e}")
 
 
 if __name__ == "__main__":

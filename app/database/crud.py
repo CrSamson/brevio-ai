@@ -9,7 +9,7 @@ import logging
 from datetime import datetime, timedelta, timezone
 from typing import Optional
 
-from sqlalchemy import func, literal_column, or_, select, text
+from sqlalchemy import func, literal_column, or_, select, text, update
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.orm import Session
 
@@ -109,12 +109,14 @@ def set_youtube_summary(db: Session, video_id: int, summary: str) -> None:
 
 
 def get_recent_summarized_youtube_videos(db: Session, hours: int) -> list[YoutubeVideo]:
-    """Return YouTube videos published in the last `hours` hours that have a summary."""
+    """Return YouTube videos published in the last `hours` hours that have a
+    non-empty summary AND have not already been included in a sent digest."""
     cutoff = _digest_cutoff(hours)
     stmt = (
         select(YoutubeVideo)
         .where(YoutubeVideo.summary != "")
         .where(YoutubeVideo.published_at >= cutoff)
+        .where(YoutubeVideo.digest_sent_at.is_(None))
         .order_by(YoutubeVideo.published_at.desc())
     )
     return list(db.execute(stmt).scalars().all())
@@ -208,13 +210,15 @@ def set_article_summary(db: Session, article_id: int, summary: str) -> None:
 
 
 def get_recent_summarized_articles(db: Session, hours: int) -> list[Article]:
-    """Return Articles published in the last `hours` hours that have a non-empty summary."""
+    """Return Articles published in the last `hours` hours that have a non-empty
+    summary AND have not already been included in a sent digest."""
     cutoff = _digest_cutoff(hours)
     stmt = (
         select(Article)
         .where(Article.summary.isnot(None))
         .where(Article.summary != "")
         .where(Article.published_at >= cutoff)
+        .where(Article.digest_sent_at.is_(None))
         .order_by(Article.published_at.desc())
     )
     return list(db.execute(stmt).scalars().all())
@@ -420,13 +424,43 @@ def set_paper_summary(db: Session, paper_id: int, summary: str) -> None:
 
 
 def get_recent_summarized_papers(db: Session, hours: int) -> list[Paper]:
-    """Return Papers published in the last `hours` hours that have a non-empty summary."""
+    """Return Papers published in the last `hours` hours that have a non-empty
+    summary AND have not already been included in a sent digest."""
     cutoff = _digest_cutoff(hours)
     stmt = (
         select(Paper)
         .where(Paper.summary.isnot(None))
         .where(Paper.summary != "")
         .where(Paper.published_at >= cutoff)
+        .where(Paper.digest_sent_at.is_(None))
         .order_by(Paper.published_at.desc())
     )
     return list(db.execute(stmt).scalars().all())
+
+
+# ===================================================================
+# Digest send-state (shared across all three content kinds)
+# ===================================================================
+
+def mark_digest_sent(db: Session, model, ids: list[int]) -> int:
+    """
+    Stamp `digest_sent_at = NOW()` on the rows of `model` whose `id` is in
+    `ids`. Used after a digest email goes out successfully so the same row
+    never ships twice.
+
+    Returns the number of rows updated.
+
+    Idempotent: re-applying to the same ids just refreshes the timestamp.
+    `model` must have a `digest_sent_at` column - works for Article, Paper,
+    and YoutubeVideo.
+    """
+    if not ids:
+        return 0
+    stmt = (
+        update(model)
+        .where(model.id.in_(ids))
+        .values(digest_sent_at=func.now())
+    )
+    result = db.execute(stmt)
+    db.flush()
+    return result.rowcount or 0
