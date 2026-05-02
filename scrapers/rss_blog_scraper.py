@@ -49,8 +49,6 @@ class RssBlogScraper(BaseScraper):
         self.user_agent    = source_config.get("user_agent", DEFAULT_UA)
         # Topic tags inherited by every article this scraper produces.
         self.topics        = list(source_config.get("topics", []))
-        # Docling has heavy startup; only build the converter on first need.
-        self._converter = None
 
     # ------------------------------------------------------------------
     # Public
@@ -148,15 +146,35 @@ class RssBlogScraper(BaseScraper):
     # ------------------------------------------------------------------
 
     def _fetch_content(self, url: str) -> str | None:
-        """Docling extraction. Failures return None - never drop the article."""
+        """trafilatura extraction. Failures return None - never drop the article.
+
+        Replaced Docling in Phase 3 of the multi-topic plan: ~5 MB lib vs
+        Docling's ~3 GB transitives, faster (median 0.9s vs Docling's 1.2s+),
+        and (importantly) succeeds on sites where Docling hits 403 from User-
+        Agent blocking (e.g. phys.org).
+
+        Trade-off: trafilatura's content-detection heuristic partial-truncates
+        on a few sites with unusual DOM structures (Wired, The Verge). For
+        those sources we leave fetch_content=false in sources.json and the
+        summariser falls back to RSS description.
+        """
         try:
-            if self._converter is None:
-                from docling.document_converter import DocumentConverter
-                self._converter = DocumentConverter()
-            result = self._converter.convert(url)
-            return result.document.export_to_markdown()
+            import trafilatura
+            html = trafilatura.fetch_url(url)
+            if not html:
+                log.warning("[%s] trafilatura.fetch_url returned None for %s",
+                            self.source_id, url)
+                return None
+            md = trafilatura.extract(html, output_format="markdown",
+                                     include_links=False)
+            if not md:
+                log.warning("[%s] trafilatura.extract returned None for %s",
+                            self.source_id, url)
+                return None
+            return md
         except Exception as e:  # noqa: BLE001
-            log.warning("[%s] Docling failed for %s: %s", self.source_id, url, e)
+            log.warning("[%s] trafilatura failed for %s: %s",
+                        self.source_id, url, e)
             return None
 
     @staticmethod

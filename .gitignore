@@ -29,3 +29,6 @@ Thumbs.db
 
 # Jupyter
 .ipynb_checkpoints/
+
+# Phase 3a A/B output - evidence files, not source
+tools/extractor_comparison/

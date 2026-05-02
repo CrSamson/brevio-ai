@@ -8,7 +8,7 @@ Covers:
   1. Parses a real Anthropic feed fixture into BlogArticle objects.
   2. The lookback filter actually narrows results when hours is small.
   3. Malformed entries (missing link or title) are silently dropped.
-  4. Docling failures don't drop the article - it's returned with
+  4. Content-extractor failures don't drop the article - it's returned with
      content_md=None, content_fetched=False.
 
 Run:
@@ -85,19 +85,19 @@ def test_malformed_entries_skipped() -> None:
     print(f"  ok - kept 1 good entry, dropped 2 malformed")
 
 
-def test_docling_failure_does_not_drop_article() -> None:
+def test_content_extraction_failure_does_not_drop_article() -> None:
     raw = ANTHROPIC_NEWS.read_bytes()
     scraper = RssBlogScraper({
         "id":            "anthropic_news",
         "feed_url":      "x",
         "fetch_content": True,
     })
-    # Stub _fetch_content to simulate Docling failing for every URL.
+    # Stub _fetch_content to simulate the extractor failing for every URL.
     scraper._fetch_content = lambda url: None  # type: ignore[assignment]
     items = scraper._parse_feed_bytes(raw, hours=HUGE_LOOKBACK)
 
-    assert len(items) > 0, "should still return items even if Docling fails"
-    assert all(i.content_md is None     for i in items)
+    assert len(items) > 0, "should still return items even when extraction fails"
+    assert all(i.content_md is None       for i in items)
     assert all(i.content_fetched is False for i in items)
     print(f"  ok - {len(items)} items returned with content_md=None")
 
@@ -110,7 +110,7 @@ TESTS = [
     test_parses_correctly,
     test_lookback_filter,
     test_malformed_entries_skipped,
-    test_docling_failure_does_not_drop_article,
+    test_content_extraction_failure_does_not_drop_article,
 ]
 
 
