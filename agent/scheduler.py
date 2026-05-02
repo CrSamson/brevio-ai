@@ -34,7 +34,16 @@ from apscheduler.schedulers.blocking import BlockingScheduler
 from apscheduler.triggers.cron import CronTrigger
 from dotenv import load_dotenv
 
-from agent.digest import build_digest, cap_balanced, render_html, render_text, send_email
+from agent.digest import (
+    DIGEST_TOPIC_LABELS,
+    DIGEST_TOPIC_ORDER,
+    build_digest,
+    cap_by_topic,
+    flatten_by_topic,
+    render_html,
+    render_text,
+    send_email,
+)
 from agent.summarizer import Summarizer
 from app.database.crud import (
     get_unsummarized_articles,
@@ -106,14 +115,17 @@ def _email_digest(hours: int, max_items: int | None = None) -> None:
              hours, max_items)
     articles, papers, videos = build_digest(hours=hours)
     pre_total = len(articles) + len(papers) + len(videos)
-    if max_items:
-        articles, papers, videos = cap_balanced(
-            articles, papers, videos, max_items=max_items,
-        )
-    total = len(articles) + len(papers) + len(videos)
-    if max_items and total < pre_total:
-        log.info("  capped from %d to %d items (max_items=%d)",
+
+    # max_items=None means no cap — use a huge number so quotas don't trim.
+    cap = max_items if max_items is not None else (pre_total or 1)
+    by_topic = cap_by_topic(articles, papers, videos, max_items=cap)
+    total = sum(len(items) for items in by_topic.values())
+    if total < pre_total:
+        log.info("  capped from %d to %d items (max_items=%s)",
                  pre_total, total, max_items)
+    for topic in DIGEST_TOPIC_ORDER:
+        log.info("  [%s] %d item(s)", DIGEST_TOPIC_LABELS[topic],
+                 len(by_topic.get(topic, [])))
     if total == 0:
         log.info("  nothing to send for the last %dh", hours)
         return
@@ -130,24 +142,25 @@ def _email_digest(hours: int, max_items: int | None = None) -> None:
             return
 
     subject = (
-        f"AI News Digest — {datetime.now(timezone.utc).strftime('%Y-%m-%d')} "
+        f"Brevio Daily — {' · '.join(DIGEST_TOPIC_LABELS[t] for t in DIGEST_TOPIC_ORDER)} "
         f"({total} item{'s' if total != 1 else ''})"
     )
     send_email(
         subject=subject,
-        text_body=render_text(hours=hours, articles=articles, papers=papers, videos=videos),
-        html_body=render_html(hours=hours, articles=articles, papers=papers, videos=videos),
+        text_body=render_text(hours=hours, by_topic=by_topic),
+        html_body=render_html(hours=hours, by_topic=by_topic),
         recipients=recipients,
     )
     log.info("  sent to %s", ", ".join(recipients))
 
     # Mark every row that was actually emailed so it never ships twice. We
     # mark AFTER the send so an SMTP failure leaves rows unsent for retry.
+    sent_articles, sent_papers, sent_videos = flatten_by_topic(by_topic)
     try:
         with get_db() as db:
-            n_a = mark_digest_sent(db, Article,      [a.id for a in articles])
-            n_p = mark_digest_sent(db, Paper,        [p.id for p in papers])
-            n_v = mark_digest_sent(db, YoutubeVideo, [v.id for v in videos])
+            n_a = mark_digest_sent(db, Article,      [a.id for a in sent_articles])
+            n_p = mark_digest_sent(db, Paper,        [p.id for p in sent_papers])
+            n_v = mark_digest_sent(db, YoutubeVideo, [v.id for v in sent_videos])
         log.info("  marked sent: %d article(s), %d paper(s), %d video(s)", n_a, n_p, n_v)
     except Exception as e:  # noqa: BLE001 - mark failure is recoverable
         log.warning("  send succeeded but mark_digest_sent failed: %s", e)
@@ -237,10 +250,10 @@ def main() -> None:
     parser.add_argument("--hours", type=int, default=None,
                         help="Override SCHEDULE_HOURS_LOOKBACK (default: env or 24).")
     parser.add_argument("--max-items", type=int, default=None,
-                        help="Cap total items in the digest with a balanced "
-                             "per-section quota (40%% articles / 40%% papers / "
-                             "20%% videos) and per-source diversity (max 2 "
-                             "items per source/channel within a section). "
+                        help="Cap total items in the digest. Quotas split evenly "
+                             "across DIGEST_TOPIC_ORDER (4 topics → 4/4/4/3 at "
+                             "max=15) with per-source diversity (max 2 items per "
+                             "source/channel within a topic). "
                              "Default: env DIGEST_MAX_ITEMS, or unlimited.")
     args = parser.parse_args()
 

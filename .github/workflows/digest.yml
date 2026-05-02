@@ -26,7 +26,7 @@ on:
         description: 'Cap on items in the digest'
         type: number
         required: false
-        default: 10
+        default: 15
 
 # Avoid stacking two runs if a manual fire collides with the daily cron.
 concurrency:
@@ -75,7 +75,7 @@ jobs:
         run: |
           python -m agent.scheduler --once \
             --hours "${HOURS:-48}" \
-            --max-items "${MAX_ITEMS:-10}"
+            --max-items "${MAX_ITEMS:-15}"
         env:
           HOURS:     ${{ github.event.inputs.hours    }}
           MAX_ITEMS: ${{ github.event.inputs.max_items }}
