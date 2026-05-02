@@ -93,19 +93,22 @@ def _summarize() -> None:
 
         for a in articles:
             try:
-                set_article_summary(db, a.id, summarizer.summarize_article(a))
+                summary, topics = summarizer.summarize_article(a)
+                set_article_summary(db, a.id, summary, topics=topics)
             except Exception as e:  # noqa: BLE001 — keep batch going
                 log.warning("    article id=%s failed: %s", a.id, e)
 
         for p in papers:
             try:
-                set_paper_summary(db, p.id, summarizer.summarize_paper(p))
+                summary, topics = summarizer.summarize_paper(p)
+                set_paper_summary(db, p.id, summary, topics=topics)
             except Exception as e:  # noqa: BLE001
                 log.warning("    paper id=%s failed: %s", p.id, e)
 
         for v in videos:
             try:
-                set_youtube_summary(db, v.id, summarizer.summarize_youtube_video(v))
+                summary, topics = summarizer.summarize_youtube_video(v)
+                set_youtube_summary(db, v.id, summary, topics=topics)
             except Exception as e:  # noqa: BLE001
                 log.warning("    video id=%s failed: %s", v.id, e)
 

@@ -22,6 +22,7 @@ Run directly to fill in summaries for everything currently unsummarized:
 from __future__ import annotations
 
 import argparse
+import json
 import os
 from pathlib import Path
 
@@ -43,12 +44,21 @@ from app.database.db import get_db
 from app.database.models import Article, Paper, YoutubeVideo
 
 
+# Fixed topic taxonomy. The LLM is required to return values from this set.
+# Anything else is dropped during validation; if validation produces an empty
+# list, we fall back to the source-declared topics.
+ALLOWED_TOPICS: frozenset[str] = frozenset({"ai", "technology", "business", "science", "general"})
+
+# Cap on topics per item. The prompt asks for at most 2; we enforce in code.
+MAX_TOPICS_PER_ITEM: int = 2
+
+
 # .env lives at the project root; mirror app/database/db.py
 _PROJECT_ROOT = Path(__file__).resolve().parents[1]
 load_dotenv(_PROJECT_ROOT / ".env", override=True)
 
 
-DEFAULT_MODEL = "gpt-4o"   
+DEFAULT_MODEL = "gpt-4o-mini"   
 DEFAULT_MAX_TOKENS = 1024
 
 # Hard cap on chars of source text we pass into the prompt. Anthropic articles
@@ -95,10 +105,38 @@ _PAPER_PROMPT = (
     "say so plainly in one sentence. Do not pad."
 )
 
+# Shared output-format block appended to every system prompt. Defines the
+# JSON contract and the topic-classification rules. Kept separate so the
+# article/paper voice prompts stay focused on tone + structure.
+_TOPIC_TAXONOMY_BLOCK = (
+    "\n\n--- OUTPUT FORMAT ---\n"
+    "Return ONLY a single JSON object, no markdown fences, no prose:\n"
+    '{"summary": "<the paragraph from the instructions above>", '
+    '"topics": ["<topic1>", "<topic2>"]}\n\n'
+    "TOPIC RULES:\n"
+    "- Allowed values: \"ai\", \"technology\", \"business\", \"science\", \"general\". "
+    "No others.\n"
+    "- Pick 1 or 2 topics. Most items get exactly 1. Use 2 only when the item "
+    "genuinely sits in two buckets (e.g. an AI-company funding round = "
+    "[\"ai\", \"business\"]).\n"
+    "- \"ai\": ML/LLMs/AI products/AI research/AI companies. Combine with "
+    "\"business\" for AI-company funding/M&A/earnings.\n"
+    "- \"technology\": non-AI tech — hardware, software, telecoms, gadgets, "
+    "platforms, cybersecurity.\n"
+    "- \"business\": finance, markets, earnings, deals, macroeconomics — when "
+    "AI/tech is not the central subject.\n"
+    "- \"science\": non-AI research — physics, biology, chemistry, space, "
+    "medicine, climate.\n"
+    "- \"general\": catch-all for politics, conflict, crime, sports, "
+    "lifestyle, human interest. NEVER combine \"general\" with another topic. "
+    "If \"general\" applies, return [\"general\"] alone.\n"
+)
+
+
 _PROMPTS: dict[str, str] = {
-    "article":          _ARTICLE_PROMPT,
-    "video transcript": _ARTICLE_PROMPT,
-    "paper":            _PAPER_PROMPT,
+    "article":          _ARTICLE_PROMPT          + _TOPIC_TAXONOMY_BLOCK,
+    "video transcript": _ARTICLE_PROMPT          + _TOPIC_TAXONOMY_BLOCK,
+    "paper":            _PAPER_PROMPT            + _TOPIC_TAXONOMY_BLOCK,
 }
 
 
@@ -120,7 +158,7 @@ class Summarizer:
     # Source-specific entry points
     # ------------------------------------------------------------------
 
-    def summarize_article(self, article: Article) -> str:
+    def summarize_article(self, article: Article) -> tuple[str, list[str]]:
         # Prefer Docling-extracted markdown when available (per-source
         # `fetch_content` toggle in config/sources.json). Fall back to the
         # RSS feed's <description> / <summary>, which is preserved verbatim
@@ -137,9 +175,10 @@ class Summarizer:
             title=article.title,
             url=article.url,
             body=body,
+            fallback_topics=list(article.topics or []),
         )
 
-    def summarize_paper(self, paper: Paper) -> str:
+    def summarize_paper(self, paper: Paper) -> tuple[str, list[str]]:
         # arXiv abstract is short (~150-300 words) and is the canonical
         # source. Prepend the categories so the model knows what flavor
         # of paper it's dealing with.
@@ -151,25 +190,38 @@ class Summarizer:
             title=paper.title,
             url=paper.url,
             body=body,
+            fallback_topics=list(paper.topics or []),
         )
 
-    def summarize_youtube_video(self, video: YoutubeVideo) -> str:
+    def summarize_youtube_video(self, video: YoutubeVideo) -> tuple[str, list[str]]:
         body = video.transcript or video.description or ""
         return self._summarize(
             kind="video transcript",
             title=video.title,
             url=str(video.url),
             body=body,
+            fallback_topics=list(video.topics or []),
         )
 
     # ------------------------------------------------------------------
     # Core call
     # ------------------------------------------------------------------
 
-    def _summarize(self, *, kind: str, title: str, url: str, body: str) -> str:
+    def _summarize(
+        self,
+        *,
+        kind: str,
+        title: str,
+        url: str,
+        body: str,
+        fallback_topics: list[str],
+    ) -> tuple[str, list[str]]:
         body = (body or "").strip()
         if not body:
-            return f"No source text available to summarize ({kind})."
+            return (
+                f"No source text available to summarize ({kind}).",
+                _validate_topics(None, fallback=fallback_topics),
+            )
 
         if len(body) > MAX_SOURCE_CHARS:
             body = body[:MAX_SOURCE_CHARS] + "\n\n[... truncated for length]"
@@ -181,18 +233,84 @@ class Summarizer:
             f"--- SOURCE START ---\n{body}\n--- SOURCE END ---"
         )
 
-        system_prompt = _PROMPTS.get(kind, _ARTICLE_PROMPT)
+        system_prompt = _PROMPTS.get(kind, _ARTICLE_PROMPT + _TOPIC_TAXONOMY_BLOCK)
 
         response = self.client.chat.completions.create(
             model=self.model,
             max_tokens=self.max_tokens,
+            response_format={"type": "json_object"},
             messages=[
                 {"role": "system", "content": system_prompt},
                 {"role": "user",   "content": user_prompt},
             ],
         )
 
-        return (response.choices[0].message.content or "").strip()
+        raw = (response.choices[0].message.content or "").strip()
+        summary, topics_raw = _parse_llm_json(raw)
+        topics = _validate_topics(topics_raw, fallback=fallback_topics)
+        return summary, topics
+
+
+# ---------------------------------------------------------------------------
+# Output parsing + topic validation
+# ---------------------------------------------------------------------------
+
+def _parse_llm_json(raw: str) -> tuple[str, object]:
+    """Best-effort extraction of {summary, topics} from the LLM response.
+    Returns (summary_str, topics_raw_for_validation). On any failure the
+    summary falls back to the raw text and topics_raw is None so the
+    validator uses fallback_topics."""
+    if not raw:
+        return "", None
+    # Some models occasionally wrap JSON in ```json fences despite the
+    # explicit instruction not to. Strip them defensively.
+    if raw.startswith("```"):
+        raw = raw.strip("`")
+        if raw.lower().startswith("json"):
+            raw = raw[4:]
+        raw = raw.strip()
+    try:
+        data = json.loads(raw)
+    except json.JSONDecodeError:
+        # Treat the whole response as the summary; topics fall back.
+        return raw.strip(), None
+    if not isinstance(data, dict):
+        return raw.strip(), None
+    summary = (data.get("summary") or "").strip()
+    return summary, data.get("topics")
+
+
+def _validate_topics(raw: object, *, fallback: list[str]) -> list[str]:
+    """Coerce the LLM's `topics` field into a clean list:
+      - drop anything that isn't a string in ALLOWED_TOPICS
+      - dedupe while preserving order
+      - if "general" appears alongside other topics, drop "general"
+        (mutual exclusivity rule)
+      - cap at MAX_TOPICS_PER_ITEM
+      - if the list is empty after cleanup, fall back to the source-declared
+        topics (filtered to the allowed set; may itself be empty)."""
+    if not isinstance(raw, list):
+        cleaned: list[str] = []
+    else:
+        cleaned = []
+        for t in raw:
+            if not isinstance(t, str):
+                continue
+            norm = t.lower().strip()
+            if norm in ALLOWED_TOPICS and norm not in cleaned:
+                cleaned.append(norm)
+
+    if "general" in cleaned and len(cleaned) > 1:
+        cleaned = [t for t in cleaned if t != "general"]
+
+    cleaned = cleaned[:MAX_TOPICS_PER_ITEM]
+
+    if cleaned:
+        return cleaned
+
+    # Fallback path: source-declared topics, filtered to allowed values.
+    fb = [t for t in (fallback or []) if t in ALLOWED_TOPICS]
+    return fb[:MAX_TOPICS_PER_ITEM]
 
 
 # ---------------------------------------------------------------------------
@@ -216,8 +334,9 @@ def _run(limit: int | None, do_articles: bool, do_papers: bool,
             for i, article in enumerate(articles, start=1):
                 print(f"  ({i}/{len(articles)}) [{article.source}] {article.title[:80]}")
                 try:
-                    summary = summarizer.summarize_article(article)
-                    set_article_summary(db, article.id, summary)
+                    summary, topics = summarizer.summarize_article(article)
+                    set_article_summary(db, article.id, summary, topics=topics)
+                    print(f"      topics={topics}")
                 except OpenAIError as e:
                     print(f"      ! failed: {e}")
 
@@ -233,8 +352,9 @@ def _run(limit: int | None, do_articles: bool, do_papers: bool,
                 cats = ",".join(paper.categories[:2]) if paper.categories else "-"
                 print(f"  ({i}/{len(papers)}) [{cats}] {paper.title[:80]}")
                 try:
-                    summary = summarizer.summarize_paper(paper)
-                    set_paper_summary(db, paper.id, summary)
+                    summary, topics = summarizer.summarize_paper(paper)
+                    set_paper_summary(db, paper.id, summary, topics=topics)
+                    print(f"      topics={topics}")
                 except OpenAIError as e:
                     print(f"      ! failed: {e}")
 
@@ -249,8 +369,9 @@ def _run(limit: int | None, do_articles: bool, do_papers: bool,
             for i, video in enumerate(videos, start=1):
                 print(f"  ({i}/{len(videos)}) {video.title[:80]}")
                 try:
-                    summary = summarizer.summarize_youtube_video(video)
-                    set_youtube_summary(db, video.id, summary)
+                    summary, topics = summarizer.summarize_youtube_video(video)
+                    set_youtube_summary(db, video.id, summary, topics=topics)
+                    print(f"      topics={topics}")
                 except OpenAIError as e:
                     print(f"      ! failed: {e}")
 

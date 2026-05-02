@@ -103,12 +103,20 @@ def get_unsummarized_youtube_videos(db: Session, limit: Optional[int] = None) ->
     return list(db.execute(stmt).scalars().all())
 
 
-def set_youtube_summary(db: Session, video_id: int, summary: str) -> None:
-    """Persist a generated summary for one YouTube video."""
+def set_youtube_summary(
+    db: Session,
+    video_id: int,
+    summary: str,
+    topics: list[str] | None = None,
+) -> None:
+    """Persist a generated summary for one YouTube video. If `topics` is
+    provided (LLM-classified), it overwrites the source-declared tags."""
     video = db.get(YoutubeVideo, video_id)
     if video is None:
         raise ValueError(f"YoutubeVideo id={video_id} not found")
     video.summary = summary
+    if topics is not None:
+        video.topics = topics
 
 
 def get_recent_summarized_youtube_videos(db: Session, hours: int) -> list[YoutubeVideo]:
@@ -208,12 +216,20 @@ def get_unsummarized_articles(db: Session, limit: Optional[int] = None) -> list[
     return list(db.execute(stmt).scalars().all())
 
 
-def set_article_summary(db: Session, article_id: int, summary: str) -> None:
-    """Persist a generated summary for one Article."""
+def set_article_summary(
+    db: Session,
+    article_id: int,
+    summary: str,
+    topics: list[str] | None = None,
+) -> None:
+    """Persist a generated summary for one Article. If `topics` is provided
+    (LLM-classified), it overwrites the source-declared tags."""
     article = db.get(Article, article_id)
     if article is None:
         raise ValueError(f"Article id={article_id} not found")
     article.summary = summary
+    if topics is not None:
+        article.topics = topics
 
 
 def get_recent_summarized_articles(db: Session, hours: int) -> list[Article]:
@@ -436,12 +452,20 @@ def get_unsummarized_papers(db: Session, limit: Optional[int] = None) -> list[Pa
     return list(db.execute(stmt).scalars().all())
 
 
-def set_paper_summary(db: Session, paper_id: int, summary: str) -> None:
-    """Persist a generated summary for one Paper."""
+def set_paper_summary(
+    db: Session,
+    paper_id: int,
+    summary: str,
+    topics: list[str] | None = None,
+) -> None:
+    """Persist a generated summary for one Paper. If `topics` is provided
+    (LLM-classified), it overwrites the source-declared tags."""
     paper = db.get(Paper, paper_id)
     if paper is None:
         raise ValueError(f"Paper id={paper_id} not found")
     paper.summary = summary
+    if topics is not None:
+        paper.topics = topics
 
 
 def get_recent_summarized_papers(db: Session, hours: int) -> list[Paper]:

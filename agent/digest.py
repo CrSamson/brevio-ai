@@ -439,8 +439,13 @@ def build_digest(
 
 # Order of topic sections in the email. The first topic with a remaining
 # slot also gets any rounding-remainder when max_items doesn't divide evenly
-# by the topic count. So at max_items=15 across 4 topics: 4/4/4/3.
-DIGEST_TOPIC_ORDER: list[str] = ["ai", "technology", "business", "science"]
+# by the topic count. At max_items=15 across 5 topics: 3/3/3/3/3.
+#
+# "general" is intentionally last so genuine domain items keep their priority
+# placement; only items the LLM could not assign to a domain bucket end up
+# here. Multi-topic items are placed in the first matching topic in this
+# order — e.g. ["ai", "business"] -> AI section.
+DIGEST_TOPIC_ORDER: list[str] = ["ai", "technology", "business", "science", "general"]
 
 # Display labels for each topic in section headings + subject line.
 DIGEST_TOPIC_LABELS: dict[str, str] = {
@@ -448,6 +453,7 @@ DIGEST_TOPIC_LABELS: dict[str, str] = {
     "technology": "Technology",
     "business":   "Business",
     "science":    "Science",
+    "general":    "General News",
 }
 
 # Within a single topic section, no one source/channel may contribute more

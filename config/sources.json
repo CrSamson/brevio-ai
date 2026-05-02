@@ -254,7 +254,7 @@
       "fetch_content": true,
       "enabled": true,
       "fragile": false,
-      "topics": ["technology", "business", "science"]
+      "topics": ["general"]
     },
     {
       "id": "the_independent",
@@ -264,7 +264,7 @@
       "fetch_content": false,
       "enabled": true,
       "fragile": false,
-      "topics": ["technology", "business", "science"]
+      "topics": ["general"]
     },
     {
       "id": "cbc_news",
@@ -274,7 +274,7 @@
       "fetch_content": true,
       "enabled": true,
       "fragile": false,
-      "topics": ["technology", "business", "science"]
+      "topics": ["general"]
     },
     {
       "id": "cna",
@@ -284,7 +284,7 @@
       "fetch_content": true,
       "enabled": true,
       "fragile": false,
-      "topics": ["technology", "business", "science"]
+      "topics": ["general"]
     },
     {
       "id": "le_monde",
@@ -294,7 +294,7 @@
       "fetch_content": true,
       "enabled": true,
       "fragile": false,
-      "topics": ["technology", "business", "science"]
+      "topics": ["general"]
     }
   ],
 
