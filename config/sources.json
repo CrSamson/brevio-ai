@@ -1,5 +1,5 @@
 {
-  "_comment": "Driver config for the multi-source aggregator. blogs[] is consumed by RssBlogScraper; papers[] is consumed by the arxiv + hf_daily scrapers (Phases 4-5). To disable a source, set enabled=false. To pull full article markdown via Docling for a source, set fetch_content=true.",
+  "_comment": "Driver config for the multi-source aggregator. blogs[] is consumed by RssBlogScraper; papers[] is consumed by the arxiv + hf_daily scrapers. Set fetch_content=true to pull full article markdown via the configured extractor. `topics` is the list of topic tags every item from this source inherits.",
 
   "blogs": [
     {
@@ -9,7 +9,8 @@
       "feed_url": "https://raw.githubusercontent.com/Olshansk/rss-feeds/main/feeds/feed_anthropic_news.xml",
       "fetch_content": false,
       "enabled": true,
-      "fragile": false
+      "fragile": false,
+      "topics": ["ai"]
     },
     {
       "id": "anthropic_research",
@@ -18,7 +19,8 @@
       "feed_url": "https://raw.githubusercontent.com/Olshansk/rss-feeds/main/feeds/feed_anthropic_research.xml",
       "fetch_content": false,
       "enabled": true,
-      "fragile": false
+      "fragile": false,
+      "topics": ["ai"]
     },
     {
       "id": "anthropic_engineering",
@@ -27,7 +29,8 @@
       "feed_url": "https://raw.githubusercontent.com/Olshansk/rss-feeds/main/feeds/feed_anthropic_engineering.xml",
       "fetch_content": false,
       "enabled": true,
-      "fragile": false
+      "fragile": false,
+      "topics": ["ai", "technology"]
     },
     {
       "id": "openai_news",
@@ -36,7 +39,8 @@
       "feed_url": "https://openai.com/news/rss.xml",
       "fetch_content": false,
       "enabled": true,
-      "fragile": false
+      "fragile": false,
+      "topics": ["ai"]
     },
     {
       "id": "google_research",
@@ -45,7 +49,8 @@
       "feed_url": "https://research.google/blog/rss/",
       "fetch_content": false,
       "enabled": true,
-      "fragile": false
+      "fragile": false,
+      "topics": ["ai", "technology"]
     },
     {
       "id": "aws_ml",
@@ -54,7 +59,8 @@
       "feed_url": "https://aws.amazon.com/blogs/machine-learning/feed/",
       "fetch_content": false,
       "enabled": true,
-      "fragile": false
+      "fragile": false,
+      "topics": ["ai", "technology"]
     },
     {
       "id": "nvidia_developer",
@@ -63,7 +69,8 @@
       "feed_url": "https://developer.nvidia.com/blog/feed/",
       "fetch_content": false,
       "enabled": true,
-      "fragile": false
+      "fragile": false,
+      "topics": ["ai", "technology"]
     },
     {
       "id": "bair",
@@ -72,7 +79,8 @@
       "feed_url": "https://bair.berkeley.edu/blog/feed.xml",
       "fetch_content": false,
       "enabled": true,
-      "fragile": false
+      "fragile": false,
+      "topics": ["ai", "science"]
     },
     {
       "id": "cmu_ml",
@@ -81,7 +89,8 @@
       "feed_url": "https://blog.ml.cmu.edu/feed/",
       "fetch_content": false,
       "enabled": true,
-      "fragile": false
+      "fragile": false,
+      "topics": ["ai", "science"]
     },
     {
       "id": "techcrunch_ai",
@@ -90,7 +99,8 @@
       "feed_url": "https://techcrunch.com/category/artificial-intelligence/feed/",
       "fetch_content": false,
       "enabled": true,
-      "fragile": true
+      "fragile": true,
+      "topics": ["ai", "technology"]
     }
   ],
 
@@ -102,7 +112,8 @@
       "categories": ["cs.LG", "cs.AI"],
       "max_results": 10,
       "keyword_filter": null,
-      "enabled": true
+      "enabled": true,
+      "topics": ["ai", "science"]
     },
     {
       "id": "hf_daily_papers",
@@ -111,7 +122,8 @@
       "feed_url": "https://raw.githubusercontent.com/huangboming/huggingface-daily-paper-feed/main/feed.xml",
       "fallback_feed_url": "https://papers.takara.ai/api/feed",
       "enabled": true,
-      "fragile": true
+      "fragile": true,
+      "topics": ["ai"]
     }
   ]
 }

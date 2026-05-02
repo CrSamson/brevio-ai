@@ -84,6 +84,8 @@ class ArxivScraper(BaseScraper):
         self.keyword_filter = source_config.get("keyword_filter") or []
         self.timeout        = int(source_config.get("timeout", DEFAULT_TIMEOUT))
         self.user_agent     = source_config.get("user_agent", DEFAULT_UA)
+        # Topic tags inherited by every paper this scraper produces.
+        self.topics         = list(source_config.get("topics", []))
 
         if not self.categories:
             raise ValueError(
@@ -211,6 +213,7 @@ class ArxivScraper(BaseScraper):
             published_at     = published,
             updated_at_arxiv = updated_at_arxiv,
             hf_upvotes       = None,
+            topics           = self.topics,
             raw_metadata     = {"arxiv_entry_id": eid},
         )
 

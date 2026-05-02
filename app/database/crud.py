@@ -52,6 +52,7 @@ def upsert_youtube_video(db: Session, data: dict) -> YoutubeVideo:
         "description":    data.get("description", ""),
         "channel_handle": data.get("channel", data.get("channel_handle", "")),
         "transcript":     data.get("transcript", ""),
+        "topics":         list(data.get("topics", [])),
     }
 
     stmt = (
@@ -64,6 +65,8 @@ def upsert_youtube_video(db: Session, data: dict) -> YoutubeVideo:
                 "description":    values["description"],
                 "channel_handle": values["channel_handle"],
                 "transcript":     values["transcript"],
+                # One channel per video -> overwrite topics with latest config.
+                "topics":         values["topics"],
             },
         )
         .returning(YoutubeVideo)
@@ -152,6 +155,7 @@ def upsert_articles(db: Session, items: list[BlogArticle]) -> dict:
             "summary"        : item.summary,           # always None at scrape time
             "content_md"     : item.content_md,
             "content_fetched": item.content_fetched,
+            "topics"         : item.topics,
             "raw_metadata"   : item.raw_metadata or {},
         }
 
@@ -166,6 +170,9 @@ def upsert_articles(db: Session, items: list[BlogArticle]) -> dict:
                     "published_at"   : values["published_at"],
                     "content_md"     : values["content_md"],
                     "content_fetched": values["content_fetched"],
+                    # Articles have one source -> overwrite topics with the
+                    # latest source-config tags so config edits propagate.
+                    "topics"         : values["topics"],
                     "raw_metadata"   : values["raw_metadata"],
                     # summary intentionally omitted - preserve LLM output
                     "updated_at"     : func.now(),
@@ -234,6 +241,13 @@ _SOURCES_UNION = text(
     "ARRAY(SELECT DISTINCT unnest(papers.sources || EXCLUDED.sources))"
 )
 
+# Same idea for the `topics` array - used by all three content-table upserts.
+# Each table name is interpolated since the FROM clause changes per table.
+def _topics_union(table_name: str) -> text:
+    return text(
+        f"ARRAY(SELECT DISTINCT unnest({table_name}.topics || EXCLUDED.topics))"
+    )
+
 
 def upsert_papers(db: Session, items: list[PaperItem]) -> dict:
     """
@@ -279,6 +293,7 @@ def upsert_papers(db: Session, items: list[PaperItem]) -> dict:
             "published_at"    : item.published_at,
             "updated_at_arxiv": item.updated_at_arxiv,
             "hf_upvotes"      : item.hf_upvotes,
+            "topics"          : item.topics,
             "raw_metadata"    : item.raw_metadata or {},
         }
 
@@ -299,6 +314,8 @@ def upsert_papers(db: Session, items: list[PaperItem]) -> dict:
                 "hf_upvotes"      : func.coalesce(
                     stmt.excluded.hf_upvotes, Paper.hf_upvotes
                 ),
+                # Topics merge as a deduped union (mirrors `sources`).
+                "topics"          : _topics_union("papers"),
                 "updated_at"      : func.now(),
             },
         ).returning(literal_column("(xmax = 0)").label("was_inserted"))
@@ -366,6 +383,7 @@ def merge_hf_daily_papers(db: Session, items: list[PaperItem]) -> dict:
             "published_at"    : item.published_at,
             "updated_at_arxiv": item.updated_at_arxiv,
             "hf_upvotes"      : item.hf_upvotes,
+            "topics"          : item.topics,
             "raw_metadata"    : item.raw_metadata or {},
         }
 
@@ -378,6 +396,9 @@ def merge_hf_daily_papers(db: Session, items: list[PaperItem]) -> dict:
                 "hf_upvotes": func.coalesce(
                     stmt.excluded.hf_upvotes, Paper.hf_upvotes
                 ),
+                # Same union semantics as `sources` so HF Daily contributes
+                # its topic tags to an existing arxiv-only row.
+                "topics"    : _topics_union("papers"),
                 "updated_at": func.now(),
             },
         ).returning(literal_column("(xmax = 0)").label("was_inserted"))

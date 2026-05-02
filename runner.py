@@ -55,8 +55,13 @@ SOURCES_FILE  = CONFIG_DIR / "sources.json"
 # Config loaders
 # ---------------------------------------------------------------------------
 
-def load_channels(path: Path = CHANNELS_FILE) -> list[str]:
-    """Load the YouTube channel handle list."""
+def load_channels(path: Path = CHANNELS_FILE) -> list[dict]:
+    """Load the YouTube channel configs.
+
+    Each entry is `{"handle": str, "topics": list[str]}`. The runner
+    propagates `topics` to each scraped video so the digest can route
+    it to the right topic section.
+    """
     with open(path, "r", encoding="utf-8") as f:
         data = json.load(f)
     return data.get("youtube_channels", [])
@@ -209,7 +214,9 @@ class Runner:
 
         all_videos: list[dict] = []
 
-        for handle in channels:
+        for cfg in channels:
+            handle = cfg["handle"]
+            topics = list(cfg.get("topics", []))
             print(f"      -> Resolving {handle} ...", end=" ")
             channel_id = scraper.get_channel_id(handle)
 
@@ -222,6 +229,7 @@ class Runner:
 
             for video in videos:
                 video["channel"] = handle
+                video["topics"]  = topics
                 if self.fetch_transcripts:
                     transcript = scraper.get_transcript(video["video_id"])
                     video["transcript"] = transcript or ""

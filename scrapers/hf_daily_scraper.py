@@ -75,6 +75,8 @@ class HfDailyScraper(BaseScraper):
         self.fallback_feed_url = source_config.get("fallback_feed_url")
         self.timeout           = int(source_config.get("timeout", DEFAULT_TIMEOUT))
         self.user_agent        = source_config.get("user_agent", DEFAULT_UA)
+        # Topic tags inherited by every paper this scraper produces.
+        self.topics            = list(source_config.get("topics", []))
 
     # ------------------------------------------------------------------
     # Public
@@ -180,6 +182,7 @@ class HfDailyScraper(BaseScraper):
             published_at     = self._parse_date(entry),
             updated_at_arxiv = None,
             hf_upvotes       = upvotes,
+            topics           = self.topics,
             raw_metadata     = self._raw_meta(entry),
         )
 

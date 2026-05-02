@@ -35,6 +35,11 @@ _ADDITIVE_COLUMNS: list[tuple[str, str, str]] = [
     ("articles",       "digest_sent_at", "TIMESTAMPTZ"),
     ("papers",         "digest_sent_at", "TIMESTAMPTZ"),
     ("youtube_videos", "digest_sent_at", "TIMESTAMPTZ"),
+    # Topic tags inherited from source/channel config in sources.json + channels.json.
+    # Empty array on existing rows until tools/backfill_topics.py runs.
+    ("articles",       "topics",         "VARCHAR[] NOT NULL DEFAULT ARRAY[]::varchar[]"),
+    ("papers",         "topics",         "VARCHAR[] NOT NULL DEFAULT ARRAY[]::varchar[]"),
+    ("youtube_videos", "topics",         "VARCHAR[] NOT NULL DEFAULT ARRAY[]::varchar[]"),
 ]
 
 

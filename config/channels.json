@@ -1,8 +1,8 @@
 {
     "youtube_channels": [
-        "@Fireship",
-        "@AllAboutAI",
-        "@MatthewBerman",
-        "@AIExplained-official"
+        {"handle": "@Fireship",             "topics": ["technology"]},
+        {"handle": "@AllAboutAI",           "topics": ["ai"]},
+        {"handle": "@MatthewBerman",        "topics": ["ai"]},
+        {"handle": "@AIExplained-official", "topics": ["ai"]}
     ]
 }

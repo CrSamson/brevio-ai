@@ -55,6 +55,11 @@ class YoutubeVideo(Base):
     # so the same row never ships in two emails.
     digest_sent_at = Column(DateTime(timezone=True), nullable=True)
 
+    # Topic tags inherited from channels.json config (e.g. ["ai", "technology"]).
+    # Populated at insert time; refreshed on conflict so config edits propagate.
+    topics         = Column(ARRAY(String), nullable=False,
+                            server_default=text("ARRAY[]::varchar[]"))
+
     # --- housekeeping ---
     created_at     = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
 
@@ -88,6 +93,11 @@ class Article(Base):
 
     # NULL = not yet included in a sent digest. See YoutubeVideo.digest_sent_at.
     digest_sent_at  = Column(DateTime(timezone=True), nullable=True)
+
+    # Topic tags inherited from sources.json config (e.g. ["ai", "technology"]).
+    # Populated at insert time; refreshed on conflict so config edits propagate.
+    topics          = Column(ARRAY(String), nullable=False,
+                             server_default=text("ARRAY[]::varchar[]"))
 
     # Original feedparser entry, kept verbatim so we don't lose anything.
     raw_metadata    = Column(JSONB,       nullable=False,
@@ -138,6 +148,12 @@ class Paper(Base):
 
     # NULL = not yet included in a sent digest. See YoutubeVideo.digest_sent_at.
     digest_sent_at    = Column(DateTime(timezone=True), nullable=True)
+
+    # Topic tags inherited from sources.json config. For papers, the union of
+    # topics across all source configs that discovered the row (mirrors the
+    # `sources` array merge logic).
+    topics            = Column(ARRAY(String), nullable=False,
+                               server_default=text("ARRAY[]::varchar[]"))
 
     raw_metadata      = Column(JSONB,       nullable=False,
                                default=dict, server_default=text("'{}'::jsonb"))

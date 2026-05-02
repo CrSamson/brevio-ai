@@ -28,6 +28,7 @@ class BlogArticle(BaseModel):
     summary        : str | None = None    # LLM output, set later
     content_md     : str | None = None    # Docling output
     content_fetched: bool = False
+    topics         : list[str] = []       # from source_config["topics"]
     raw_metadata   : dict = {}
 
     model_config = {"frozen": True}
@@ -47,6 +48,7 @@ class Paper(BaseModel):
     published_at    : datetime | None = None
     updated_at_arxiv: datetime | None = None
     hf_upvotes      : int | None = None
+    topics          : list[str] = []               # from source_config["topics"]
     raw_metadata    : dict = {}
 
     model_config = {"frozen": True}

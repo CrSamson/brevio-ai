@@ -47,6 +47,8 @@ class RssBlogScraper(BaseScraper):
         self.fetch_content = bool(source_config.get("fetch_content", False))
         self.timeout       = int(source_config.get("timeout", DEFAULT_TIMEOUT))
         self.user_agent    = source_config.get("user_agent", DEFAULT_UA)
+        # Topic tags inherited by every article this scraper produces.
+        self.topics        = list(source_config.get("topics", []))
         # Docling has heavy startup; only build the converter on first need.
         self._converter = None
 
@@ -137,6 +139,7 @@ class RssBlogScraper(BaseScraper):
             summary         = None,                    # LLM step fills this later
             content_md      = content_md,
             content_fetched = content_fetched,
+            topics          = self.topics,
             raw_metadata    = self._raw_meta(entry),
         )
 
