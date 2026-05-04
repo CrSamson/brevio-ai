@@ -24,6 +24,7 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import sys
 from pathlib import Path
 
 from dotenv import load_dotenv
@@ -336,9 +337,11 @@ def _run(limit: int | None, do_articles: bool, do_papers: bool,
                 try:
                     summary, topics = summarizer.summarize_article(article)
                     set_article_summary(db, article.id, summary, topics=topics)
+                    db.commit()  # per-row commit — a later crash never wipes prior progress
                     print(f"      topics={topics}")
                 except OpenAIError as e:
                     print(f"      ! failed: {e}")
+                    db.rollback()
 
         if do_papers:
             papers = (
@@ -354,9 +357,11 @@ def _run(limit: int | None, do_articles: bool, do_papers: bool,
                 try:
                     summary, topics = summarizer.summarize_paper(paper)
                     set_paper_summary(db, paper.id, summary, topics=topics)
+                    db.commit()
                     print(f"      topics={topics}")
                 except OpenAIError as e:
                     print(f"      ! failed: {e}")
+                    db.rollback()
 
         if do_youtube:
             videos = (
@@ -371,12 +376,25 @@ def _run(limit: int | None, do_articles: bool, do_papers: bool,
                 try:
                     summary, topics = summarizer.summarize_youtube_video(video)
                     set_youtube_summary(db, video.id, summary, topics=topics)
+                    db.commit()
                     print(f"      topics={topics}")
                 except OpenAIError as e:
                     print(f"      ! failed: {e}")
+                    db.rollback()
 
 
 def main() -> None:
+    # Windows consoles default to cp1252 and choke on '→', accented chars,
+    # smart quotes that appear in some article titles (Le Monde, The
+    # Independent etc.). A UnicodeEncodeError mid-batch was previously
+    # taking down the entire `with get_db()` transaction and rolling back
+    # every prior LLM-classified row. Force UTF-8 here as a belt; the
+    # per-row commits in `_run` are the suspenders.
+    try:
+        sys.stdout.reconfigure(encoding="utf-8")  # type: ignore[attr-defined]
+    except Exception:  # noqa: BLE001
+        pass
+
     parser = argparse.ArgumentParser(description="Per-row LLM summarizer (OpenAI).")
     parser.add_argument("--limit", type=int, default=None,
                         help="Cap rows of each type (default: all unsummarized).")
